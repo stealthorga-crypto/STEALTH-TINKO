@@ -1,0 +1,6 @@
+# Tinko ignores
+tinko.db
+.env
+.venv/
+__pycache__/
+*.pyc
