@@ -1,4 +1,4 @@
-from typing import Optional, Any, Dict
+﻿from typing import Optional, Any, Dict
 from pydantic import BaseModel, Field, ConfigDict
 
 class CustomerIn(BaseModel):
@@ -23,7 +23,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 class RecoveryLinkRequest(BaseModel):
-    ttl_hours: int = Field(default=24, ge=1, le=168)
+    ttl_hours: float = Field(default=24, ge=0, le=168)
     channel: Optional[str] = "link"
 
 class RecoveryLinkOut(BaseModel):
