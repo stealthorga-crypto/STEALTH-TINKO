@@ -1,0 +1,41 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern blue/white console polish */
+:root{ --brand-blue-50:#eff6ff; --brand-blue-600:#1e88e5; }
+html, body { height: 100%; }
+body { @apply bg-slate-50 text-slate-900 antialiased; }
+
+/* Cards & focus */
+.card-surface { @apply bg-white rounded-2xl shadow-sm border border-slate-200; }
+*:focus-visible { @apply ring-2 ring-blue-600 ring-offset-2 ring-offset-white outline-none; }
+
+/* Optional background tint for subtle depth */
+@media (min-width: 1024px){
+  body{
+    background-image: radial-gradient(1100px 420px at 12% -10%, rgba(30,136,229,.05), transparent 65%);
+    background-repeat: no-repeat;
+  }
+}
+
+/* Anti-centering guard so pages can't reintroduce the middle gap */
+/* Anti-centering guard so pages can't reintroduce the middle gap */
+main, .page, .wrapper, .container, .mx-auto {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+}
+
+/* Safe area helpers for mobile notches */
+.safe-areas { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+/* By default keep aside without a harsh border; use subtle separator via background tint */
+aside { border-right: 0; }
+
+/* Prevent page-level centering that causes the middle gap */
+main, .page, .wrapper {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+}
