@@ -1,0 +1,173 @@
+{
+  "phases": [
+    {
+      "name": "Phase 0 - Foundation",
+      "entry": "none",
+      "exit": "Auth works, Docker stack up, Sentry on",
+      "items": [
+        {
+          "id": "AUTH-001",
+          "title": "Backend Auth & RBAC (JWT, Users, Orgs, Roles)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 7,
+          "depends_on": [],
+          "repo_paths": ["app/models.py", "app/routers/auth.py", "app/security.py", "app/deps.py", "migrations/"],
+          "acceptance": [
+            "Register/Login returns JWT with user_id, org_id, role",
+            "require_role([\"admin\"]) enforced",
+            "pytest auth suite green"
+          ],
+          "env_vars": ["JWT_SECRET", "JWT_ALGORITHM", "JWT_EXPIRY_MINUTES"]
+        },
+        {
+          "id": "INFRA-001",
+          "title": "Dockerize backend/frontend + docker-compose",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 4,
+          "depends_on": [],
+          "repo_paths": ["Dockerfile", "tinko-console/Dockerfile", "docker-compose.yml", ".env.example", "tinko-console/.env.example"],
+          "acceptance": [
+            "docker-compose up exposes :8000 and :3000",
+            "DB migrations run automatically",
+            "Mailhog UI at :8025"
+          ],
+          "env_vars": ["DATABASE_URL", "REDIS_URL"]
+        },
+        {
+          "id": "OBS-001",
+          "title": "Observability (Sentry + structured logging)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 3,
+          "depends_on": [],
+          "repo_paths": ["app/logging.py", "app/main.py", "tinko-console/lib/sentry.ts", "package.json"],
+          "acceptance": [
+            "Backend + frontend errors appear in Sentry",
+            "Logs include request_id, user_id, org_id"
+          ],
+          "env_vars": ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN", "LOG_LEVEL"]
+        }
+      ]
+    },
+    {
+      "name": "Phase 1 - Core Automation",
+      "entry": "Phase 0 complete",
+      "exit": "Event→Link→Retry→Notification→Payment",
+      "items": [
+        {
+          "id": "RETRY-001",
+          "title": "Celery workers + Redis + notification channels",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 9,
+          "depends_on": [],
+          "repo_paths": ["app/worker.py", "app/tasks/retry_tasks.py", "app/services/notifications/"],
+          "acceptance": [
+            "Task scheduling & retries (3x)",
+            "Email/SMS sent; NotificationLog persisted"
+          ],
+          "env_vars": ["REDIS_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_PHONE"]
+        },
+        {
+          "id": "PSP-001",
+          "title": "Razorpay, PayU, Cashfree adapters + webhooks",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": [],
+          "repo_paths": ["app/services/payments/", "app/routers/webhooks_*.py"],
+          "acceptance": [
+            "Checkout URL returned for each PSP",
+            "Webhook signatures verified; events stored"
+          ],
+          "env_vars": ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET", "PAYU_MERCHANT_ID", "PAYU_MERCHANT_KEY", "CASHFREE_APP_ID", "CASHFREE_SECRET_KEY"]
+        },
+        {
+          "id": "RULES-001",
+          "title": "DB-driven rules engine + visual editor",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 8,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": ["app/services/rules_engine.py", "app/routers/rules.py", "tinko-console/app/(console)/rules/"],
+          "acceptance": [
+            "Create rule (conditions/actions) with org_id",
+            "Recovery creation triggers rule execution & logs"
+          ],
+          "env_vars": []
+        },
+        {
+          "id": "TMPL-001",
+          "title": "Template management (CRUD + render)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 5,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": ["app/routers/templates.py", "app/services/template_renderer.py", "tinko-console/app/(console)/templates/"],
+          "acceptance": [
+            "Create HTML/text templates with variables",
+            "Retry tasks render & send templates"
+          ],
+          "env_vars": []
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - Product Polish",
+      "entry": "Phase 1 complete",
+      "exit": "Real dashboard + E2E coverage",
+      "items": [
+        {
+          "id": "ANALYTICS-001",
+          "title": "Analytics endpoints + live charts",
+          "status": "todo",
+          "estimate_days": 7,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": ["app/routers/analytics.py", "app/services/analytics.py", "tinko-console/components/charts/"],
+          "acceptance": [
+            "Recovery rate, categories, revenue, channels",
+            "Dashboard renders live data <500ms"
+          ],
+          "env_vars": []
+        },
+        {
+          "id": "E2E-001",
+          "title": "Playwright E2E (auth, recovery, rules)",
+          "status": "todo",
+          "estimate_days": 5,
+          "depends_on": [],
+          "repo_paths": ["tinko-console/tests/e2e/", ".github/workflows/e2e.yml"],
+          "acceptance": ["E2E green on PRs vs staging"],
+          "env_vars": ["STAGING_BASE_URL", "TEST_USER_EMAIL", "TEST_USER_PASS"]
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 - Production Readiness",
+      "entry": "Phase 2 complete",
+      "exit": "Prod deploy + multi-tenancy",
+      "items": [
+        {
+          "id": "DEPLOY-001",
+          "title": "Prod CI/CD (ECR/Cloud Run + Vercel)",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": ["INFRA-001"],
+          "acceptance": ["Push to main deploys backend & frontend"],
+          "env_vars": ["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "SENTRY_DSN", "NEXTAUTH_SECRET"]
+        },
+        {
+          "id": "PART-001",
+          "title": "Multi-tenancy (org_id + RLS semantics)",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": ["AUTH-001"],
+          "acceptance": ["All queries filtered by org_id; isolation tests pass"],
+          "env_vars": []
+        }
+      ]
+    }
+  ]
+}

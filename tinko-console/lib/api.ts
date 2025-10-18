@@ -2,6 +2,10 @@
 
 type RequestOptions = Omit<RequestInit, "method"> & {
   parseJson?: boolean;
+  timeout?: number;
+  retry?: boolean;
+  retryCount?: number;
+  retryDelay?: number;
 };
 
 export class ApiError extends Error {
@@ -9,11 +13,14 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number,
     public readonly body?: unknown,
+    public readonly code?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -36,36 +43,112 @@ const buildUrl = (path: string) => {
 };
 
 const request = async <T>(path: string, method: ApiMethod, options: RequestOptions = {}) => {
-  const { parseJson = true, headers, ...init } = options;
+  const {
+    parseJson = true,
+    headers,
+    timeout = 30000,
+    retry = true,
+    retryCount = 2,
+    retryDelay = 1000,
+    ...init
+  } = options;
 
-  const response = await fetch(buildUrl(path), {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    ...init,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  if (!response.ok) {
-    let body: unknown;
+  let attempts = 0;
 
-    if (parseJson) {
-      try {
-        body = await response.json();
-      } catch {
-        body = await response.text();
+  while (attempts <= (retry ? retryCount : 0)) {
+    try {
+      const response = await fetch(buildUrl(path), {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        signal: controller.signal,
+        credentials: "include", // Send cookies for session
+        ...init,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let body: unknown;
+
+        if (parseJson) {
+          try {
+            body = await response.json();
+          } catch {
+            body = await response.text();
+          }
+        }
+
+        // Don't retry client errors (4xx) except rate limits (429)
+        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          throw new ApiError(
+            response.statusText || "Request failed",
+            response.status,
+            body,
+            "CLIENT_ERROR"
+          );
+        }
+
+        // Retry server errors (5xx) and rate limits
+        if (retry && attempts < retryCount) {
+          attempts++;
+          await sleep(retryDelay * attempts);
+          continue;
+        }
+
+        throw new ApiError(
+          response.statusText || "Request failed",
+          response.status,
+          body,
+          "SERVER_ERROR"
+        );
       }
+
+      if (!parseJson || response.status === 204) {
+        return undefined as T;
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Abort error (timeout)
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new ApiError("Request timeout", 408, { timeout }, "TIMEOUT");
+      }
+
+      // Network error
+      if (error instanceof TypeError) {
+        if (retry && attempts < retryCount) {
+          attempts++;
+          await sleep(retryDelay * attempts);
+          continue;
+        }
+
+        throw new ApiError("Network error - check your connection", 0, null, "NETWORK_ERROR");
+      }
+
+      // Re-throw ApiError
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      // Unknown error
+      throw new ApiError(
+        error instanceof Error ? error.message : "Unknown error",
+        500,
+        null,
+        "UNKNOWN_ERROR"
+      );
     }
-
-    throw new ApiError(response.statusText || "Request failed", response.status, body);
   }
 
-  if (!parseJson || response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
+  throw new ApiError("Service unavailable after retries", 503, { attempts }, "RETRY_EXHAUSTED");
 };
 
 export const api = {
@@ -86,4 +169,24 @@ export const api = {
       ...options,
     }),
   delete: <T>(path: string, options?: RequestOptions) => request<T>(path, "DELETE", options),
+};
+
+/**
+ * Health check endpoint
+ */
+export const healthCheck = () => api.get<{ status: string; version: string }>("/healthz");
+
+/**
+ * React Query integration helpers
+ */
+export const queryKeys = {
+  organizations: ["organizations"] as const,
+  organization: (id: string) => ["organizations", id] as const,
+  recoveries: (orgId: string, params?: Record<string, string | number | boolean>) =>
+    ["recoveries", orgId, params] as const,
+  recovery: (orgId: string, recoveryId: string) =>
+    ["recoveries", orgId, recoveryId] as const,
+  rules: (orgId: string) => ["rules", orgId] as const,
+  events: (orgId: string, params?: Record<string, string | number | boolean>) => ["events", orgId, params] as const,
+  logs: (orgId: string, params?: Record<string, string | number | boolean>) => ["logs", orgId, params] as const,
 };

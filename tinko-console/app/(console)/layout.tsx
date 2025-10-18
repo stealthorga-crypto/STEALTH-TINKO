@@ -1,6 +1,5 @@
-﻿import type { ReactNode } from "react";
-import { Shell } from "@/components/layout/shell";
+import Shell from "@/components/layout/shell";
 
-export default function ConsoleLayout({ children }: { children: ReactNode }) {
+export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   return <Shell>{children}</Shell>;
 }

@@ -18,6 +18,8 @@ type MockSession = {
   user: MockUser;
   organizations: MockOrganization[];
   activeOrganizationId: string;
+  role: "owner" | "admin" | "operator" | "viewer";
+  orgId: string;
 };
 
 const mockSession: MockSession = {
@@ -32,6 +34,8 @@ const mockSession: MockSession = {
     { id: "org_demo", name: "Demo Retailers" },
   ],
   activeOrganizationId: "org_tinko",
+  role: "admin",
+  orgId: "org_tinko",
 };
 
 export const useSession = () => {

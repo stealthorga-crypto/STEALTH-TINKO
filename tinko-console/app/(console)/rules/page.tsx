@@ -1,66 +1,41 @@
-﻿import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
-import { LoadingState } from "@/components/states/loading-state";
-import { EmptyState } from "@/components/states/empty-state";
-
-const ruleCategories = [
-  {
-    name: "High-risk merchants",
-    description: "Escalate accounts with chargeback risk above threshold for manual review.",
-  },
-  {
-    name: "Installment reminders",
-    description: "Send multi-channel nudges for upcoming installment payments due within 3 days.",
-  },
-  {
-    name: "Subscription recovery",
-    description: "Retry failed renewals using smart retriage windows per payment processor.",
-  },
-];
-
 export default function RulesPage() {
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Rules"
-        description="Define the automation logic that powers your recovery workflows across merchant segments."
-        action={<Button>Create rule</Button>}
-      />
-
-      <SectionCard
-        title="Active rulesets"
-        description="Connect the API or upload JSON configurations to populate this list."
-        action={
-          <Button variant="outline" size="sm">
-            Import rules JSON
-          </Button>
-        }
-      >
-        <LoadingState label="Loading rules" />
-      </SectionCard>
-
-      <SectionCard title="Starter recipes" description="Tweak these blueprints to match your merchant programs.">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {ruleCategories.map((category) => (
-            <div key={category.name} className="rounded-2xl border border-border/60 bg-white/80 p-4 shadow-sm">
-              <h3 className="text-base font-semibold text-foreground/90">{category.name}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
-              <Button variant="ghost" size="sm" className="mt-3 px-0 text-primary">
-                View draft
-              </Button>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold text-slate-900 mb-6">Recovery Rules</h1>
+      
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 mb-6">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">Active Rules</h2>
+        
+        <div className="space-y-4">
+          <div className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-slate-900">3-Day Follow-up</h3>
+              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">Active</span>
             </div>
-          ))}
+            <p className="text-sm text-slate-600">Send follow-up email 3 days after failed payment</p>
+          </div>
+          
+          <div className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-slate-900">7-Day Reminder</h3>
+              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">Active</span>
+            </div>
+            <p className="text-sm text-slate-600">Send reminder if payment still pending after 7 days</p>
+          </div>
+          
+          <div className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium text-slate-900">Final Notice</h3>
+              <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full">Draft</span>
+            </div>
+            <p className="text-sm text-slate-600">Final notification before account suspension</p>
+          </div>
         </div>
-      </SectionCard>
+      </div>
 
-      <SectionCard>
-        <EmptyState
-          title="Next steps"
-          description="Connect the recovery-rules endpoint and push your first strategy to activate automations."
-          action={<Button variant="outline">Open developer docs</Button>}
-        />
-      </SectionCard>
+      <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
+        Create New Rule
+      </button>
     </div>
   );
 }
