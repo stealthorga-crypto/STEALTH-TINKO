@@ -1,6 +1,7 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from ..deps import get_db
 from .. import models, schemas
@@ -8,7 +9,19 @@ from .. import models, schemas
 router = APIRouter(prefix="/v1/events", tags=["events"])
 
 @router.post("/payment_failed", response_model=schemas.FailureEventOut, status_code=status.HTTP_201_CREATED)
-def payment_failed(payload: schemas.FailureEventIn, db: Session = Depends(get_db)):
+def payment_failed(
+    payload: schemas.FailureEventIn, 
+    db: Session = Depends(get_db),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key")
+):
+    # Check for duplicate idempotency key
+    if idempotency_key:
+        existing = db.query(models.FailureEvent).filter(
+            models.FailureEvent.meta.contains({"idempotency_key": idempotency_key})
+        ).first()
+        if existing:
+            return existing
+    
     # Upsert transaction by external reference
     txn = db.query(models.Transaction).filter(models.Transaction.transaction_ref == payload.transaction_ref).first()
     if txn is None:
@@ -35,6 +48,7 @@ def payment_failed(payload: schemas.FailureEventIn, db: Session = Depends(get_db
     combined_meta = {}
     if payload.metadata: combined_meta["metadata"] = payload.metadata
     if extras: combined_meta["extras"] = extras
+    if idempotency_key: combined_meta["idempotency_key"] = idempotency_key
 
     fe = models.FailureEvent(
         transaction_id=txn.id,

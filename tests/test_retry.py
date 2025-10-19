@@ -13,19 +13,9 @@ from app.models import User, Organization, RecoveryAttempt, RetryPolicy, Notific
 from app.security import hash_password, create_jwt
 from app.tasks.retry_tasks import calculate_next_retry, schedule_retry
 
-# Test database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_retry.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Use real database (PostgreSQL) for integration testing
+from app.db import SessionLocal, engine
 
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
@@ -34,25 +24,31 @@ def setup_db():
     """Create tables once for all tests."""
     Base.metadata.create_all(bind=engine)
     yield
-    # Cleanup after all tests
-    Base.metadata.drop_all(bind=engine)
+    # Don't drop tables - let other tests use them
 
 
 @pytest.fixture(autouse=True)
 def clean_db():
     """Clean database between tests."""
-    db = TestingSessionLocal()
-    for table in reversed(Base.metadata.sorted_tables):
-        db.execute(table.delete())
-    db.commit()
-    db.close()
+    db = SessionLocal()
+    try:
+        # Clean in order to avoid FK constraints
+        db.query(NotificationLog).delete()
+        db.query(RecoveryAttempt).delete()
+        db.query(RetryPolicy).delete()
+        db.query(Transaction).delete()
+        db.query(User).delete()
+        db.query(Organization).delete()
+        db.commit()
+    finally:
+        db.close()
     yield
 
 
 @pytest.fixture
 def test_org(clean_db):
     """Create a test organization."""
-    db = TestingSessionLocal()
+    db = SessionLocal()
     org = Organization(name="Test Org", slug="test-org", is_active=True)
     db.add(org)
     db.commit()
@@ -64,7 +60,7 @@ def test_org(clean_db):
 @pytest.fixture
 def test_user(test_org):
     """Create a test user."""
-    db = TestingSessionLocal()
+    db = SessionLocal()
     user = User(
         email="admin@test.com",
         hashed_password=hash_password("TestPass123!"),
@@ -83,7 +79,7 @@ def test_user(test_org):
 @pytest.fixture
 def auth_headers(test_user):
     """Get authentication headers."""
-    token = create_jwt({"sub": str(test_user.id), "email": test_user.email})
+    token = create_jwt({"user_id": test_user.id, "org_id": test_user.org_id, "role": test_user.role})
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -150,7 +146,7 @@ def test_create_retry_policy(test_user, auth_headers):
 def test_list_retry_policies(test_user, auth_headers):
     """Test listing retry policies."""
     # Create a policy first
-    db = TestingSessionLocal()
+    db = SessionLocal()
     policy = RetryPolicy(
         org_id=test_user.org_id,
         name="Test Policy",
@@ -175,7 +171,7 @@ def test_list_retry_policies(test_user, auth_headers):
 def test_get_active_policy(test_user, auth_headers):
     """Test getting the active retry policy."""
     # Create active policy
-    db = TestingSessionLocal()
+    db = SessionLocal()
     policy = RetryPolicy(
         org_id=test_user.org_id,
         name="Active Policy",
@@ -200,7 +196,7 @@ def test_get_active_policy(test_user, auth_headers):
 def test_deactivate_policy(test_user, auth_headers):
     """Test deactivating a retry policy."""
     # Create policy
-    db = TestingSessionLocal()
+    db = SessionLocal()
     policy = RetryPolicy(
         org_id=test_user.org_id,
         name="To Deactivate",
@@ -221,7 +217,7 @@ def test_deactivate_policy(test_user, auth_headers):
     assert response.status_code == 200
     
     # Verify deactivated
-    db = TestingSessionLocal()
+    db = SessionLocal()
     policy = db.query(RetryPolicy).filter(RetryPolicy.id == policy_id).first()
     assert policy.is_active is False
     db.close()
@@ -242,7 +238,7 @@ def test_get_retry_stats(test_user, auth_headers):
 
 def test_notification_log_creation():
     """Test creating notification logs."""
-    db = TestingSessionLocal()
+    db = SessionLocal()
     
     # Create org, transaction, and recovery attempt
     org = Organization(name="Test", slug="test")
@@ -285,7 +281,7 @@ def test_notification_log_creation():
 
 def test_get_attempt_notifications(test_user, auth_headers):
     """Test getting notifications for a recovery attempt."""
-    db = TestingSessionLocal()
+    db = SessionLocal()
     
     # Create recovery attempt
     tx = Transaction(transaction_ref="tx_456", org_id=test_user.org_id)
@@ -327,7 +323,7 @@ def test_get_attempt_notifications(test_user, auth_headers):
 
 def test_trigger_immediate_retry(test_user, auth_headers):
     """Test triggering an immediate retry."""
-    db = TestingSessionLocal()
+    db = SessionLocal()
     
     tx = Transaction(transaction_ref="tx_789", org_id=test_user.org_id)
     db.add(tx)

@@ -1,0 +1,5 @@
+=== HEALTH CHECKS ===
+Backend:
+{"ok":true}
+Frontend:
+HTTP 200

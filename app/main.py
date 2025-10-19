@@ -90,6 +90,11 @@ try:
 except Exception:
     pass
 
+try:
+    from .routers.analytics import router as analytics_router
+except Exception:
+    pass
+
 app = FastAPI(title="Tinko API (dev)", version="0.1.0")
 
 # Add request tracing middleware
@@ -144,3 +149,5 @@ if payments_router:
     app.include_router(payments_router)
 if stripe_webhook_router:
     app.include_router(stripe_webhook_router)
+if analytics_router:
+    app.include_router(analytics_router)

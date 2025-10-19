@@ -1,0 +1,13 @@
+=== ENVIRONMENT VERSIONS ===
+Session: 20251019-102148
+Python: Python 3.13.8
+Node: v22.20.0
+npm: 10.9.3
+Docker: Docker version 28.3.2, build 578ccf6
+Docker Compose: Docker Compose version v2.39.1-desktop.1
+pytest: pytest 8.4.1
+
+Backend: {"ok":true}
+Frontend HTTP Status: 200
+Healthy containers: 0
+0

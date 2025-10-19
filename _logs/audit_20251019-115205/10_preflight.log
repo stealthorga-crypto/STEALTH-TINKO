@@ -1,0 +1,72 @@
+TASK 10: PREFLIGHT VERIFICATION
+===============================
+
+Running backend test suite...
+============================= test session starts =============================
+platform win32 -- Python 3.13.8, pytest-8.4.1, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\srina\OneDrive\Documents\Downloads\Stealth-Reecovery-20251010T154256Z-1-001\Stealth-Reecovery
+plugins: anyio-4.9.0, langsmith-0.4.5
+collecting ... collected 43 items
+
+tests/test_auth.py::test_register_new_user PASSED                        [  2%]
+tests/test_auth.py::test_register_duplicate_email PASSED                 [  4%]
+tests/test_auth.py::test_register_duplicate_org_slug PASSED              [  6%]
+tests/test_auth.py::test_login_success PASSED                            [  9%]
+tests/test_auth.py::test_login_wrong_password PASSED                     [ 11%]
+tests/test_auth.py::test_login_nonexistent_user PASSED                   [ 13%]
+tests/test_auth.py::test_get_current_user PASSED                         [ 16%]
+tests/test_auth.py::test_get_current_user_no_token PASSED                [ 18%]
+tests/test_auth.py::test_get_current_user_invalid_token PASSED           [ 20%]
+tests/test_auth.py::test_get_current_organization PASSED                 [ 23%]
+tests/test_classifier.py::test_known_code_issuer_declined PASSED         [ 25%]
+tests/test_classifier.py::test_message_auth_timeout PASSED               [ 27%]
+tests/test_classifier.py::test_message_funds PASSED                      [ 30%]
+tests/test_classifier.py::test_unknown_defaults PASSED                   [ 32%]
+tests/test_payments_checkout.py::test_checkout_503_without_config PASSED [ 34%]
+tests/test_payments_checkout.py::test_checkout_success_with_mock PASSED  [ 37%]
+tests/test_payments_stripe.py::test_create_intent_when_not_configured_returns_503 PASSED [ 39%]
+tests/test_payments_stripe.py::test_create_intent_success_with_mock PASSED [ 41%]
+tests/test_recovery_links.py::test_valid_token_flow PASSED               [ 44%]
+tests/test_recovery_links.py::test_expired_token PASSED                  [ 46%]
+tests/test_recovery_links.py::test_used_token PASSED                     [ 48%]
+tests/test_retry.py::test_calculate_next_retry PASSED                    [ 51%]
+tests/test_retry.py::test_create_retry_policy PASSED                     [ 53%]
+tests/test_retry.py::test_list_retry_policies PASSED                     [ 55%]
+tests/test_retry.py::test_get_active_policy PASSED                       [ 58%]
+tests/test_retry.py::test_deactivate_policy PASSED                       [ 60%]
+tests/test_retry.py::test_get_retry_stats PASSED                         [ 62%]
+tests/test_retry.py::test_notification_log_creation PASSED               [ 65%]
+tests/test_retry.py::test_get_attempt_notifications PASSED               [ 67%]
+tests/test_retry.py::test_trigger_immediate_retry PASSED                 [ 69%]
+tests/test_stripe_integration.py::test_create_checkout_session_success PASSED [ 72%]
+tests/test_stripe_integration.py::test_create_checkout_session_transaction_not_found PASSED [ 74%]
+tests/test_stripe_integration.py::test_create_checkout_session_stripe_error FAILED [ 76%]
+tests/test_stripe_integration.py::test_create_payment_link_success PASSED [ 79%]
+tests/test_stripe_integration.py::test_get_session_status_success PASSED [ 81%]
+tests/test_stripe_integration.py::test_get_session_status_not_found PASSED [ 83%]
+tests/test_stripe_integration.py::test_webhook_checkout_session_completed PASSED [ 86%]
+tests/test_stripe_integration.py::test_webhook_payment_intent_succeeded PASSED [ 88%]
+tests/test_stripe_integration.py::test_webhook_missing_signature PASSED  [ 90%]
+tests/test_stripe_integration.py::test_webhook_invalid_signature PASSED  [ 93%]
+tests/test_stripe_integration.py::test_end_to_end_checkout_flow PASSED   [ 95%]
+tests/test_webhooks_stripe.py::test_webhook_503_when_not_configured PASSED [ 97%]
+tests/test_webhooks_stripe.py::test_webhook_records_event_with_mock PASSED [100%]
+
+================================== FAILURES ===================================
+__________________ test_create_checkout_session_stripe_error __________________
+tests\test_stripe_integration.py:181: in test_create_checkout_session_stripe_error
+    mock_stripe_create.side_effect = stripe.error.InvalidRequestError(
+                                     ^^^^^^^^^^^^
+E   AttributeError: module 'stripe' has no attribute 'error'
+---------------------------- Captured stdout setup ----------------------------
+{"method": "POST", "path": "/v1/auth/login", "client_host": "testclient", "event": "request_started", "request_id": "d2f192b7-2647-4f06-941c-8614c218febf", "logger": "app.middleware", "level": "info", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-19T06:30:30.154590Z"}
+{"status_code": 200, "duration_ms": 312.69, "event": "request_completed", "path": "/v1/auth/login", "method": "POST", "request_id": "d2f192b7-2647-4f06-941c-8614c218febf", "logger": "app.middleware", "level": "info", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-19T06:30:30.467761Z"}
+HTTP Request: POST http://testserver/v1/auth/login "HTTP/1.1 200 OK"
+----------------------------- Captured log setup ------------------------------
+INFO     app.middleware:middleware.py:34 {"method": "POST", "path": "/v1/auth/login", "client_host": "testclient", "event": "request_started", "request_id": "d2f192b7-2647-4f06-941c-8614c218febf", "logger": "app.middleware", "level": "info", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-19T06:30:30.154590Z"}
+INFO     app.middleware:middleware.py:48 {"status_code": 200, "duration_ms": 312.69, "event": "request_completed", "path": "/v1/auth/login", "method": "POST", "request_id": "d2f192b7-2647-4f06-941c-8614c218febf", "logger": "app.middleware", "level": "info", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-19T06:30:30.467761Z"}
+INFO     httpx:_client.py:1025 HTTP Request: POST http://testserver/v1/auth/login "HTTP/1.1 200 OK"
+=========================== short test summary info ===========================
+FAILED tests/test_stripe_integration.py::test_create_checkout_session_stripe_error
+================= 1 failed, 42 passed, 67 warnings in 20.07s ==================

@@ -1,0 +1,19 @@
+=== PHASE 1: AUTHENTICATION & RBAC ===
+
+1.1 Checking OpenAPI schema for auth endpoints...
+"/v1/auth/register":
+"/v1/auth/login":
+"/v1/auth/me":
+"/v1/auth/org":
+
+1.2 Testing POST /v1/auth/register...
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJvcmdfaWQiOjEsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc2MDkwNDUxMH0.puSzQHzhe0gkLkoSIf9IN1f60-QC9vQ8tTQB1wRE8Zc","token_type":"bearer","user":{"email":"autotest@tinko.in","full_name":"Auto Test","id":1,"role":"admin","is_active":true,"org_id":1,"created_at":"2025-10-18T20:08:29.379632Z"},"organization":{"id":1,"name":"AutoTest Org","slug":"autotest-org","is_active":true,"created_at":"2025-10-18T20:08:29.379632Z"}}
+HTTP:201
+
+✅ Registration successful, token received
+
+1.3 Testing GET /v1/auth/me with token...
+{"email":"autotest@tinko.in","full_name":"Auto Test","id":1,"role":"admin","is_active":true,"org_id":1,"created_at":"2025-10-18T20:08:29.379632Z"}
+HTTP:200
+
+✅ PHASE 1 COMPLETE

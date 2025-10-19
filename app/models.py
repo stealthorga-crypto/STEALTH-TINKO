@@ -85,7 +85,8 @@ class RecoveryAttempt(Base):
     next_retry_at = Column(DateTime(timezone=True), nullable=True)
     max_retries = Column(Integer, nullable=False, default=3)  # Configurable per attempt
     
-    # Relationship to notification logs
+    # Relationships
+    transaction = relationship("Transaction")
     notifications = relationship("NotificationLog", back_populates="recovery_attempt")
 
 

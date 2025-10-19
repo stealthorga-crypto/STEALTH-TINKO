@@ -1,0 +1,8 @@
+TASK 4: MIGRATIONS INVENTORY
+============================
+
+total 28
+drwxr-xr-x 1 srina 197609     0 Oct 18 16:55 .
+drwxr-xr-x 1 srina 197609     0 Oct 18 09:24 ..
+drwxr-xr-x 1 srina 197609     0 Oct 18 16:55 __pycache__
+-rw-r--r-- 1 srina 197609 11064 Oct 18 16:55 001_initial_schema.py

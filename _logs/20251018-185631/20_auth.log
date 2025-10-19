@@ -1,0 +1,484 @@
+=== PHASE 1: AUTHENTICATION API ===
+
+1.1: Testing POST /v1/auth/register
+{"detail":"Not Found"}
+
+
+❌ Register failed - no token received
+
+1.4: Running auth tests
+time="2025-10-18T19:03:50+05:30" level=warning msg="C:\\Users\\srina\\OneDrive\\Documents\\Downloads\\Stealth-Reecovery-20251010T154256Z-1-001\\Stealth-Reecovery\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:207: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.3.4, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+plugins: anyio-4.11.0, asyncio-0.25.2
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None
+collecting ... collected 10 items
+
+tests/test_auth.py::test_register_new_user FAILED                        [ 10%]
+tests/test_auth.py::test_register_duplicate_email FAILED                 [ 20%]
+tests/test_auth.py::test_register_duplicate_org_slug FAILED              [ 30%]
+tests/test_auth.py::test_login_success FAILED                            [ 40%]
+tests/test_auth.py::test_login_wrong_password FAILED                     [ 50%]
+tests/test_auth.py::test_login_nonexistent_user FAILED                   [ 60%]
+tests/test_auth.py::test_get_current_user FAILED                         [ 70%]
+tests/test_auth.py::test_get_current_user_no_token FAILED                [ 80%]
+tests/test_auth.py::test_get_current_user_invalid_token FAILED           [ 90%]
+tests/test_auth.py::test_get_current_organization FAILED                 [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_register_new_user ____________________________
+tests/test_auth.py:47: in test_register_new_user
+    assert response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+________________________ test_register_duplicate_email _________________________
+tests/test_auth.py:80: in test_register_duplicate_email
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_______________________ test_register_duplicate_org_slug _______________________
+tests/test_auth.py:108: in test_register_duplicate_org_slug
+    assert response.status_code == 400
+E   assert 404 == 400
+E    +  where 404 = <Response [404 Not Found]>.status_code
+______________________________ test_login_success ______________________________
+tests/test_auth.py:133: in test_login_success
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+__________________________ test_login_wrong_password ___________________________
+tests/test_auth.py:162: in test_login_wrong_password
+    assert response.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_________________________ test_login_nonexistent_user __________________________
+tests/test_auth.py:176: in test_login_nonexistent_user
+    assert response.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+____________________________ test_get_current_user _____________________________
+tests/test_auth.py:191: in test_get_current_user
+    token = register_response.json()["access_token"]
+E   KeyError: 'access_token'
+________________________ test_get_current_user_no_token ________________________
+tests/test_auth.py:209: in test_get_current_user_no_token
+    assert response.status_code == 403  # FastAPI HTTPBearer returns 403
+E   assert 404 == 403
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_____________________ test_get_current_user_invalid_token ______________________
+tests/test_auth.py:218: in test_get_current_user_invalid_token
+    assert response.status_code == 401
+E   assert 404 == 401
+E    +  where 404 = <Response [404 Not Found]>.status_code
+________________________ test_get_current_organization _________________________
+tests/test_auth.py:233: in test_get_current_organization
+    token = register_response.json()["access_token"]
+E   KeyError: 'access_token'
+=============================== warnings summary ===============================
+app/routers/retry_policies.py:29
+  /app/app/routers/retry_policies.py:29: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class RetryPolicyResponse(BaseModel):
+
+app/routers/retry_policies.py:55
+  /app/app/routers/retry_policies.py:55: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificationLogResponse(BaseModel):
+
+app/main.py:108
+  /app/app/main.py:108: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574
+  /usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_auth.py::test_register_new_user - assert 404 == 201
+FAILED tests/test_auth.py::test_register_duplicate_email - assert 404 == 400
+FAILED tests/test_auth.py::test_register_duplicate_org_slug - assert 404 == 400
+FAILED tests/test_auth.py::test_login_success - assert 404 == 200
+FAILED tests/test_auth.py::test_login_wrong_password - assert 404 == 401
+FAILED tests/test_auth.py::test_login_nonexistent_user - assert 404 == 401
+FAILED tests/test_auth.py::test_get_current_user - KeyError: 'access_token'
+FAILED tests/test_auth.py::test_get_current_user_no_token - assert 404 == 403
+FAILED tests/test_auth.py::test_get_current_user_invalid_token - assert 404 =...
+FAILED tests/test_auth.py::test_get_current_organization - KeyError: 'access_...
+======================== 10 failed, 4 warnings in 4.16s ========================
+=== PHASE 1: AUTHENTICATION API - RETRY ===
+
+1.1: Testing POST /v1/auth/register
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJvcmdfaWQiOjEsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc2MDg4MDk0Mn0.suk212rDDekyqvPlnNN2g9JbQzAzlNsnZXaqEDPz6w0","token_type":"bearer","user":{"email":"phase1v2@test.com","full_name":"Phase1 User","id":1,"role":"admin","is_active":true,"org_id":1,"created_at":"2025-10-18T13:35:42.417034Z"},"organization":{"id":1,"name":"Phase1OrgV2","slug":"phase1orgv2","is_active":true,"created_at":"2025-10-18T13:35:42.417034Z"}}
+HTTP_CODE:201
+
+✅ Register successful, got token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkI...
+
+1.2: Testing POST /v1/auth/login
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJvcmdfaWQiOjEsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc2MDg4MDk0M30.HAaECJpPzhdm0d5npyS3y9cSJkGRno_gDJI46zgaSp4","token_type":"bearer","user":{"email":"phase1v2@test.com","full_name":"Phase1 User","id":1,"role":"admin","is_active":true,"org_id":1,"created_at":"2025-10-18T13:35:42.417034Z"},"organization":{"id":1,"name":"Phase1OrgV2","slug":"phase1orgv2","is_active":true,"created_at":"2025-10-18T13:35:42.417034Z"}}
+HTTP_CODE:200
+
+1.3: Testing GET /v1/auth/me
+{"email":"phase1v2@test.com","full_name":"Phase1 User","id":1,"role":"admin","is_active":true,"org_id":1,"created_at":"2025-10-18T13:35:42.417034Z"}
+HTTP_CODE:200
+
+=== 1.4: Running pytest on auth tests ===
+time="2025-10-18T19:05:44+05:30" level=warning msg="C:\\Users\\srina\\OneDrive\\Documents\\Downloads\\Stealth-Reecovery-20251010T154256Z-1-001\\Stealth-Reecovery\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:207: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.3.4, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+plugins: anyio-4.11.0, asyncio-0.25.2
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None
+collecting ... collected 10 items
+
+tests/test_auth.py::test_register_new_user PASSED                        [ 10%]
+tests/test_auth.py::test_register_duplicate_email PASSED                 [ 20%]
+tests/test_auth.py::test_register_duplicate_org_slug PASSED              [ 30%]
+tests/test_auth.py::test_login_success PASSED                            [ 40%]
+tests/test_auth.py::test_login_wrong_password PASSED                     [ 50%]
+tests/test_auth.py::test_login_nonexistent_user PASSED                   [ 60%]
+tests/test_auth.py::test_get_current_user PASSED                         [ 70%]
+tests/test_auth.py::test_get_current_user_no_token PASSED                [ 80%]
+tests/test_auth.py::test_get_current_user_invalid_token PASSED           [ 90%]
+tests/test_auth.py::test_get_current_organization PASSED                 [100%]
+
+=============================== warnings summary ===============================
+app/auth_schemas.py:25
+  /app/app/auth_schemas.py:25: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserResponse(UserBase):
+
+app/auth_schemas.py:36
+  /app/app/auth_schemas.py:36: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class OrganizationResponse(BaseModel):
+
+app/routers/retry_policies.py:29
+  /app/app/routers/retry_policies.py:29: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class RetryPolicyResponse(BaseModel):
+
+app/routers/retry_policies.py:55
+  /app/app/routers/retry_policies.py:55: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificationLogResponse(BaseModel):
+
+app/main.py:108
+  /app/app/main.py:108: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574
+  /usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/test_auth.py::test_register_new_user
+tests/test_auth.py::test_register_duplicate_email
+tests/test_auth.py::test_register_duplicate_org_slug
+tests/test_auth.py::test_login_success
+tests/test_auth.py::test_login_wrong_password
+tests/test_auth.py::test_get_current_user
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:102: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    user=UserResponse.from_orm(user),
+
+tests/test_auth.py::test_register_new_user
+tests/test_auth.py::test_register_duplicate_email
+tests/test_auth.py::test_register_duplicate_org_slug
+tests/test_auth.py::test_login_success
+tests/test_auth.py::test_login_wrong_password
+tests/test_auth.py::test_get_current_user
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:103: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    organization=OrganizationResponse.from_orm(organization),
+
+tests/test_auth.py::test_login_success
+  /app/app/routers/auth.py:139: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    user=UserResponse.from_orm(user),
+
+tests/test_auth.py::test_login_success
+  /app/app/routers/auth.py:140: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    organization=OrganizationResponse.from_orm(user.organization),
+
+tests/test_auth.py::test_get_current_user
+  /app/app/routers/auth.py:149: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    return UserResponse.from_orm(current_user)
+
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:157: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    return OrganizationResponse.from_orm(current_user.organization)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 10 passed, 24 warnings in 5.48s ========================
+
+=== Phase 1 Complete ===
+=== PHASE 2: FULL TEST SUITE AFTER AUTH ===
+
+time="2025-10-18T19:06:04+05:30" level=warning msg="C:\\Users\\srina\\OneDrive\\Documents\\Downloads\\Stealth-Reecovery-20251010T154256Z-1-001\\Stealth-Reecovery\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:207: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.3.4, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+plugins: anyio-4.11.0, asyncio-0.25.2
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None
+collecting ... collected 43 items
+
+tests/test_auth.py::test_register_new_user PASSED                        [  2%]
+tests/test_auth.py::test_register_duplicate_email PASSED                 [  4%]
+tests/test_auth.py::test_register_duplicate_org_slug PASSED              [  6%]
+tests/test_auth.py::test_login_success PASSED                            [  9%]
+tests/test_auth.py::test_login_wrong_password PASSED                     [ 11%]
+tests/test_auth.py::test_login_nonexistent_user PASSED                   [ 13%]
+tests/test_auth.py::test_get_current_user PASSED                         [ 16%]
+tests/test_auth.py::test_get_current_user_no_token PASSED                [ 18%]
+tests/test_auth.py::test_get_current_user_invalid_token PASSED           [ 20%]
+tests/test_auth.py::test_get_current_organization PASSED                 [ 23%]
+tests/test_classifier.py::test_known_code_issuer_declined PASSED         [ 25%]
+tests/test_classifier.py::test_message_auth_timeout PASSED               [ 27%]
+tests/test_classifier.py::test_message_funds PASSED                      [ 30%]
+tests/test_classifier.py::test_unknown_defaults PASSED                   [ 32%]
+tests/test_payments_checkout.py::test_checkout_503_without_config PASSED [ 34%]
+tests/test_payments_checkout.py::test_checkout_success_with_mock PASSED  [ 37%]
+tests/test_payments_stripe.py::test_create_intent_when_not_configured_returns_503 PASSED [ 39%]
+tests/test_payments_stripe.py::test_create_intent_success_with_mock PASSED [ 41%]
+tests/test_recovery_links.py::test_valid_token_flow PASSED               [ 44%]
+tests/test_recovery_links.py::test_expired_token PASSED                  [ 46%]
+tests/test_recovery_links.py::test_used_token PASSED                     [ 48%]
+tests/test_retry.py::test_calculate_next_retry PASSED                    [ 51%]
+tests/test_retry.py::test_create_retry_policy FAILED                     [ 53%]
+tests/test_retry.py::test_list_retry_policies FAILED                     [ 55%]
+tests/test_retry.py::test_get_active_policy FAILED                       [ 58%]
+tests/test_retry.py::test_deactivate_policy FAILED                       [ 60%]
+tests/test_retry.py::test_get_retry_stats FAILED                         [ 62%]
+tests/test_retry.py::test_notification_log_creation PASSED               [ 65%]
+tests/test_retry.py::test_get_attempt_notifications FAILED               [ 67%]
+tests/test_retry.py::test_trigger_immediate_retry FAILED                 [ 69%]
+tests/test_stripe_integration.py::test_create_checkout_session_success ERROR [ 72%]
+tests/test_stripe_integration.py::test_create_checkout_session_transaction_not_found ERROR [ 74%]
+tests/test_stripe_integration.py::test_create_checkout_session_stripe_error ERROR [ 76%]
+tests/test_stripe_integration.py::test_create_payment_link_success ERROR [ 79%]
+tests/test_stripe_integration.py::test_get_session_status_success ERROR  [ 81%]
+tests/test_stripe_integration.py::test_get_session_status_not_found ERROR [ 83%]
+tests/test_stripe_integration.py::test_webhook_checkout_session_completed FAILED [ 86%]
+tests/test_stripe_integration.py::test_webhook_payment_intent_succeeded FAILED [ 88%]
+tests/test_stripe_integration.py::test_webhook_missing_signature PASSED  [ 90%]
+tests/test_stripe_integration.py::test_webhook_invalid_signature PASSED  [ 93%]
+tests/test_stripe_integration.py::test_end_to_end_checkout_flow ERROR    [ 95%]
+tests/test_webhooks_stripe.py::test_webhook_503_when_not_configured PASSED [ 97%]
+tests/test_webhooks_stripe.py::test_webhook_records_event_with_mock PASSED [100%]
+
+==================================== ERRORS ====================================
+____________ ERROR at setup of test_create_checkout_session_success ____________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_____ ERROR at setup of test_create_checkout_session_transaction_not_found _____
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_________ ERROR at setup of test_create_checkout_session_stripe_error __________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+______________ ERROR at setup of test_create_payment_link_success ______________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+______________ ERROR at setup of test_get_session_status_success _______________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_____________ ERROR at setup of test_get_session_status_not_found ______________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_______________ ERROR at setup of test_end_to_end_checkout_flow ________________
+tests/test_stripe_integration.py:94: in auth_headers
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+=================================== FAILURES ===================================
+___________________________ test_create_retry_policy ___________________________
+tests/test_retry.py:141: in test_create_retry_policy
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+___________________________ test_list_retry_policies ___________________________
+tests/test_retry.py:169: in test_list_retry_policies
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+____________________________ test_get_active_policy ____________________________
+tests/test_retry.py:194: in test_get_active_policy
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+____________________________ test_deactivate_policy ____________________________
+tests/test_retry.py:221: in test_deactivate_policy
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_____________________________ test_get_retry_stats _____________________________
+tests/test_retry.py:233: in test_get_retry_stats
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+________________________ test_get_attempt_notifications ________________________
+tests/test_retry.py:322: in test_get_attempt_notifications
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+_________________________ test_trigger_immediate_retry _________________________
+tests/test_retry.py:354: in test_trigger_immediate_retry
+    assert response.status_code in [200, 500]  # 500 is ok if celery isn't running
+E   assert 401 in [200, 500]
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+___________________ test_webhook_checkout_session_completed ____________________
+tests/test_stripe_integration.py:338: in test_webhook_checkout_session_completed
+    assert response.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.stripe_service:stripe_service.py:263 {"event": "stripe_webhook_secret_missing", "path": "/v1/payments/stripe/webhooks", "method": "POST", "request_id": "4a990ce2-ee2f-4356-a1c0-6e8e16c69e77", "logger": "app.services.stripe_service", "level": "warning", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-18T13:36:21.884840Z"}
+____________________ test_webhook_payment_intent_succeeded _____________________
+tests/test_stripe_integration.py:380: in test_webhook_payment_intent_succeeded
+    assert response.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response [400 Bad Request]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.stripe_service:stripe_service.py:263 {"event": "stripe_webhook_secret_missing", "path": "/v1/payments/stripe/webhooks", "method": "POST", "request_id": "3d5414f6-5d5b-4220-88fd-d2512c3d86ba", "logger": "app.services.stripe_service", "level": "warning", "app": "stealth-recovery", "environment": "development", "timestamp": "2025-10-18T13:36:22.474869Z"}
+=============================== warnings summary ===============================
+app/auth_schemas.py:25
+  /app/app/auth_schemas.py:25: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserResponse(UserBase):
+
+app/auth_schemas.py:36
+  /app/app/auth_schemas.py:36: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class OrganizationResponse(BaseModel):
+
+app/routers/retry_policies.py:29
+  /app/app/routers/retry_policies.py:29: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class RetryPolicyResponse(BaseModel):
+
+app/routers/retry_policies.py:55
+  /app/app/routers/retry_policies.py:55: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificationLogResponse(BaseModel):
+
+app/main.py:108
+  /app/app/main.py:108: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574
+  /usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/test_auth.py::test_register_new_user
+tests/test_auth.py::test_register_duplicate_email
+tests/test_auth.py::test_register_duplicate_org_slug
+tests/test_auth.py::test_login_success
+tests/test_auth.py::test_login_wrong_password
+tests/test_auth.py::test_get_current_user
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:102: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    user=UserResponse.from_orm(user),
+
+tests/test_auth.py::test_register_new_user
+tests/test_auth.py::test_register_duplicate_email
+tests/test_auth.py::test_register_duplicate_org_slug
+tests/test_auth.py::test_login_success
+tests/test_auth.py::test_login_wrong_password
+tests/test_auth.py::test_get_current_user
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:103: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    organization=OrganizationResponse.from_orm(organization),
+
+tests/test_auth.py::test_login_success
+  /app/app/routers/auth.py:139: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    user=UserResponse.from_orm(user),
+
+tests/test_auth.py::test_login_success
+  /app/app/routers/auth.py:140: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    organization=OrganizationResponse.from_orm(user.organization),
+
+tests/test_auth.py::test_get_current_user
+  /app/app/routers/auth.py:149: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    return UserResponse.from_orm(current_user)
+
+tests/test_auth.py::test_get_current_organization
+  /app/app/routers/auth.py:157: PydanticDeprecatedSince20: The `from_orm` method is deprecated; set `model_config['from_attributes']=True` and use `model_validate` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    return OrganizationResponse.from_orm(current_user.organization)
+
+tests/test_webhooks_stripe.py::test_webhook_503_when_not_configured
+tests/test_webhooks_stripe.py::test_webhook_records_event_with_mock
+  /usr/local/lib/python3.11/site-packages/httpx/_models.py:408: DeprecationWarning: Use 'content=<...>' to upload raw bytes/text content.
+    headers, stream = encode_request(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_retry.py::test_create_retry_policy - assert 401 == 200
+FAILED tests/test_retry.py::test_list_retry_policies - assert 401 == 200
+FAILED tests/test_retry.py::test_get_active_policy - assert 401 == 200
+FAILED tests/test_retry.py::test_deactivate_policy - assert 401 == 200
+FAILED tests/test_retry.py::test_get_retry_stats - assert 401 == 200
+FAILED tests/test_retry.py::test_get_attempt_notifications - assert 401 == 200
+FAILED tests/test_retry.py::test_trigger_immediate_retry - assert 401 in [200...
+FAILED tests/test_stripe_integration.py::test_webhook_checkout_session_completed
+FAILED tests/test_stripe_integration.py::test_webhook_payment_intent_succeeded
+ERROR tests/test_stripe_integration.py::test_create_checkout_session_success
+ERROR tests/test_stripe_integration.py::test_create_checkout_session_transaction_not_found
+ERROR tests/test_stripe_integration.py::test_create_checkout_session_stripe_error
+ERROR tests/test_stripe_integration.py::test_create_payment_link_success - as...
+ERROR tests/test_stripe_integration.py::test_get_session_status_success - ass...
+ERROR tests/test_stripe_integration.py::test_get_session_status_not_found - a...
+ERROR tests/test_stripe_integration.py::test_end_to_end_checkout_flow - asser...
+============= 9 failed, 27 passed, 26 warnings, 7 errors in 19.36s =============
+
+=== Calculating test pass rate ===
+Results: 27/112 tests passing (24.1%)
+bash: bc: command not found
+bash: [: -eq: unary operator expected
+⚠️  Not yet at target: 24.1% < 80%

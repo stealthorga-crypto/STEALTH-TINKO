@@ -1,0 +1,6 @@
+worker-1  | Usage: celery [OPTIONS] COMMAND [ARGS]...
+worker-1  | Try 'celery --help' for help.
+worker-1  | 
+worker-1  | Error: Invalid value for '-A' / '--app': 
+worker-1  | Unable to load celery application.
+worker-1  | The module app.worker.celery was not found.

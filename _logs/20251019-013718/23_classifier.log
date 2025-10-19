@@ -1,0 +1,62 @@
+=== PHASE 4: CLASSIFIER & RULES AUDIT ===
+
+4.1 Verifying classifier service...
+time="2025-10-19T01:40:16+05:30" level=warning msg="C:\\Users\\srina\\OneDrive\\Documents\\Downloads\\Stealth-Reecovery-20251010T154256Z-1-001\\Stealth-Reecovery\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+Traceback (most recent call last):
+  File "<string>", line 2, in <module>
+ImportError: cannot import name 'classify_failure' from 'app.services.classifier' (/app/app/services/classifier.py)
+
+4.2 Running classifier tests...
+time="2025-10-19T01:40:17+05:30" level=warning msg="C:\\Users\\srina\\OneDrive\\Documents\\Downloads\\Stealth-Reecovery-20251010T154256Z-1-001\\Stealth-Reecovery\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:207: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-8.3.4, pluggy-1.6.0
+rootdir: /app
+plugins: anyio-4.11.0, asyncio-0.25.2
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None
+collected 4 items
+
+tests/test_classifier.py ....                                            [100%]
+
+=============================== warnings summary ===============================
+app/auth_schemas.py:25
+  /app/app/auth_schemas.py:25: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class UserResponse(UserBase):
+
+app/auth_schemas.py:36
+  /app/app/auth_schemas.py:36: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class OrganizationResponse(BaseModel):
+
+app/routers/retry_policies.py:29
+  /app/app/routers/retry_policies.py:29: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class RetryPolicyResponse(BaseModel):
+
+app/routers/retry_policies.py:55
+  /app/app/routers/retry_policies.py:55: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NotificationLogResponse(BaseModel):
+
+app/main.py:108
+  /app/app/main.py:108: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574
+  /usr/local/lib/python3.11/site-packages/fastapi/applications.py:4574: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 4 passed, 6 warnings in 8.83s =========================
+
+✅ PHASE 4 COMPLETE

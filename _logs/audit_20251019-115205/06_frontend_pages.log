@@ -1,0 +1,36 @@
+TASK 6: FRONTEND PAGES INVENTORY
+================================
+
+Authentication pages:
+
+Payment pages:
+tinko-console/app/pay/cancel/page.tsx
+tinko-console/app/pay/retry/success/page.tsx
+tinko-console/app/pay/retry/[token]/page.tsx
+tinko-console/app/pay/success/page.tsx
+tinko-console/app/pay/success/PaymentSuccessContent.tsx
+tinko-console/app/pay/[token]/page.tsx
+
+Console pages:
+tinko-console/app/(console)/dashboard/page.tsx
+tinko-console/app/(console)/dashboard/_components/recovery-feed.tsx
+tinko-console/app/(console)/developer/logs/page.tsx
+tinko-console/app/(console)/developer/page.tsx
+tinko-console/app/(console)/error.tsx
+tinko-console/app/(console)/layout.tsx
+tinko-console/app/(console)/loading.tsx
+tinko-console/app/(console)/onboarding/page.tsx
+tinko-console/app/(console)/rules/page.tsx
+tinko-console/app/(console)/settings/page.tsx
+tinko-console/app/(console)/templates/page.tsx
+
+Middleware check:
+-rw-r--r-- 1 srina 197609 2760 Oct 17 11:08 tinko-console/middleware.ts
+
+Auth configuration:
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth/auth";
+
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };

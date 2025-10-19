@@ -1,0 +1,6 @@
+NAME                           IMAGE                        COMMAND                  SERVICE    CREATED              STATUS                        PORTS
+stealth-reecovery-backend-1    stealth-reecovery-backend    "sh -c 'alembic upgr…"   backend    About a minute ago   Up About a minute             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+stealth-reecovery-db-1         postgres:15-alpine           "docker-entrypoint.s…"   db         About a minute ago   Up About a minute (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+stealth-reecovery-frontend-1   stealth-reecovery-frontend   "docker-entrypoint.s…"   frontend   About a minute ago   Up About a minute             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+stealth-reecovery-mailhog-1    mailhog/mailhog:latest       "MailHog"                mailhog    About a minute ago   Up About a minute             0.0.0.0:1025->1025/tcp, [::]:1025->1025/tcp, 0.0.0.0:8025->8025/tcp, [::]:8025->8025/tcp
+stealth-reecovery-redis-1      redis:7-alpine               "docker-entrypoint.s…"   redis      About a minute ago   Up About a minute (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
