@@ -44,12 +44,14 @@ Stealth-Reecovery/
 ## 🎯 Quick Start
 
 1. **Read the Documentation**
+
    ```bash
    # Open consolidated docs
    code CONSOLIDATED_DOCUMENTATION.md
    ```
 
 2. **Backend Setup**
+
    ```bash
    cd Stealth-Reecovery
    pip install -r requirements.txt
@@ -57,6 +59,7 @@ Stealth-Reecovery/
    ```
 
 3. **Frontend Setup**
+
    ```bash
    cd tinko-console
    npm install
@@ -83,7 +86,7 @@ All documentation has been consolidated into a single comprehensive file:
 **[📖 CONSOLIDATED_DOCUMENTATION.md](./CONSOLIDATED_DOCUMENTATION.md)** - 342KB containing:
 
 1. Project Overview
-2. Quick Start Guides  
+2. Quick Start Guides
 3. Implementation Status
 4. Architecture & Design
 5. Deployment & Operations
@@ -103,18 +106,21 @@ All documentation has been consolidated into a single comprehensive file:
 ## 🛠️ Technology Stack
 
 **Backend:**
+
 - FastAPI (Python)
 - SQLAlchemy ORM
 - Stripe SDK
 - PostgreSQL/SQLite
 
 **Frontend:**
+
 - Next.js 15
 - React 19
 - Tailwind CSS
 - TypeScript
 
 **Infrastructure:**
+
 - Docker
 - GitHub Actions
 - Vercel (Frontend)
@@ -135,4 +141,4 @@ For questions or issues, please refer to the [consolidated documentation](./CONS
 
 **Last Updated:** October 20, 2025  
 **Repository:** stealthorga-crypto/STEALTH-TINKO  
-**Documentation Status:** ✅ Consolidated" 
+**Documentation Status:** ✅ Consolidated"
