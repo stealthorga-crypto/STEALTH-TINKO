@@ -5,6 +5,7 @@ from typing import Optional
 
 from ..deps import get_db
 from .. import models, schemas
+from ..security import decode_jwt
 
 router = APIRouter(prefix="/v1/events", tags=["events"])
 
@@ -12,7 +13,8 @@ router = APIRouter(prefix="/v1/events", tags=["events"])
 def payment_failed(
     payload: schemas.FailureEventIn, 
     db: Session = Depends(get_db),
-    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key")
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
 ):
     # Check for duplicate idempotency key
     if idempotency_key:
@@ -34,6 +36,19 @@ def payment_failed(
     else:
         if payload.amount is not None: txn.amount = payload.amount
         if payload.currency is not None: txn.currency = payload.currency
+
+    # Guardrail A: If Authorization is present, assign transaction to the user's org
+    try:
+        if authorization and authorization.lower().startswith("bearer "):
+            token = authorization.split(" ", 1)[1]
+            payload_jwt = decode_jwt(token)
+            if payload_jwt and (user_id := payload_jwt.get("user_id")):
+                user = db.query(models.User).filter(models.User.id == user_id).first()
+                if user and user.org_id:
+                    txn.org_id = user.org_id
+    except Exception:
+        # Never block ingest due to auth parsing issues
+        pass
 
     # Parse occurred_at if provided (ISO 8601)
     occurred = None
