@@ -4,3 +4,16 @@ tinko.db
 .venv/
 __pycache__/
 *.pyc
+
+# Frontend build artifacts
+.next/
+node_modules/
+
+# Python cache & test artifacts
+.pytest_cache/
+*.coverage
+coverage/
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
