@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function RulesPage() {
   return (
     <div className="p-8">
@@ -33,9 +35,9 @@ export default function RulesPage() {
         </div>
       </div>
 
-      <button className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
-        Create New Rule
-      </button>
+      <Link href="/settings/retry" className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
+        Edit Retry Policy
+      </Link>
     </div>
   );
 }

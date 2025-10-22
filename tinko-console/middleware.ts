@@ -50,6 +50,8 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
+  // Console route protection: redirects anonymous users to /auth/signin and
+  // injects basic security headers on protected routes.
   const { pathname } = request.nextUrl;
 
   // Allow public routes
