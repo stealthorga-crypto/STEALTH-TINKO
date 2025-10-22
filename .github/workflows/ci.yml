@@ -3,8 +3,12 @@ name: Tinko Recovery CI
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'Stealth-Reecovery/**'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'Stealth-Reecovery/**'
 
 jobs:
   test:
