@@ -1,78 +1,76 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+
+type Revenue = { total_recovered: number; currency: string };
+type Rate = { recovery_rate: number; total_attempts: number; successful: number };
+type Category = { category: string; count: number };
+
 export default function DashboardPage() {
+  const [revenue, setRevenue] = useState<Revenue | null>(null);
+  const [rate, setRate] = useState<Rate | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = async () => {
+    try {
+      const [rev, rr, cats] = await Promise.all([
+        api.get<Revenue>("/v1/analytics/revenue_recovered"),
+        api.get<Rate>("/v1/analytics/recovery_rate"),
+        api.get<Category[]>("/v1/analytics/failure_categories"),
+      ]);
+      setRevenue(rev);
+      setRate(rr);
+      setCategories(cats);
+      setError(null);
+    } catch (e) {
+      console.warn(e);
+      setError("Failed to load analytics");
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 20000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatMoney = (amount: number | undefined, currency: string | undefined) => {
+    if (amount == null) return "-";
+    const val = amount / 100;
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: (currency || "USD").toUpperCase() }).format(val);
+  };
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-slate-900 mb-6">Dashboard</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <p className="text-sm text-slate-600 mb-2">Total Recovered</p>
-          <p className="text-3xl font-bold text-blue-600">$82.4K</p>
-          <p className="text-xs text-green-600 mt-2">↑ 12% from last month</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <p className="text-sm text-slate-600 mb-2">Active Rules</p>
-          <p className="text-3xl font-bold text-slate-900">18</p>
-          <p className="text-xs text-slate-600 mt-2">3 templates applied</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <p className="text-sm text-slate-600 mb-2">Alerts</p>
-          <p className="text-3xl font-bold text-amber-600">3</p>
-          <p className="text-xs text-slate-600 mt-2">Requires attention</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <p className="text-sm text-slate-600 mb-2">Merchants</p>
-          <p className="text-3xl font-bold text-slate-900">12</p>
-          <p className="text-xs text-slate-600 mt-2">2 onboarding</p>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h2>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Payment recovered</p>
-                <p className="text-xs text-slate-600">Merchant ABC - $450.00</p>
+          <p className="text-sm text-slate-600 mb-2">Recovered Amount</p>
+          <p className="text-3xl font-bold text-blue-600">{formatMoney(revenue?.total_recovered, revenue?.currency)}</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-600 mb-2">Recovery Rate</p>
+          <p className="text-3xl font-bold text-slate-900">{rate ? `${rate.recovery_rate}%` : "-"}</p>
+          <p className="text-xs text-slate-600 mt-2">{rate ? `${rate.successful}/${rate.total_attempts} completed` : ""}</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+          <p className="text-sm font-medium text-slate-900 mb-3">Failure categories</p>
+          <div className="space-y-2 max-h-40 overflow-auto">
+            {categories.map(c => (
+              <div key={c.category} className="flex items-center justify-between text-sm">
+                <span className="text-slate-700">{c.category}</span>
+                <span className="text-slate-900 font-medium">{c.count}</span>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">New rule applied</p>
-                <p className="text-xs text-slate-600">3-day follow-up template</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Alert triggered</p>
-                <p className="text-xs text-slate-600">High failure rate detected</p>
-              </div>
-            </div>
+            ))}
+            {categories.length === 0 && <div className="text-sm text-slate-500">No data yet</div>}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Next Steps</h2>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2 text-sm text-slate-700">
-              <span className="text-blue-600">→</span>
-              Review pending recovery attempts
-            </li>
-            <li className="flex items-center gap-2 text-sm text-slate-700">
-              <span className="text-blue-600">→</span>
-              Configure email templates
-            </li>
-            <li className="flex items-center gap-2 text-sm text-slate-700">
-              <span className="text-blue-600">→</span>
-              Set up webhook notifications
-            </li>
-          </ul>
         </div>
       </div>
     </div>
