@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 export default function OnboardingPage() {
+  // Step 1: Server-side Stripe ping (no secrets in browser)
+  // Step 2: Save minimal retry policy via /v1/retry/policies
   const [step, setStep] = useState(1);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
