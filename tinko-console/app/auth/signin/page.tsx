@@ -1,16 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function SigninPage() {
   const router = useRouter();
+  const params = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // No verification - just redirect to dashboard
-    router.push("/dashboard");
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email") || "");
+    const password = String(form.get("password") || "");
+    try {
+      const res = await api.post<{ access_token: string; user: any; organization: any }>(
+        "/v1/auth/login",
+        { email, password }
+      );
+      const token = (res as any)?.access_token;
+      if (token) {
+        // Store token in localStorage and cookie for middleware
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("auth_token", token);
+          document.cookie = `authjs.session-token=${encodeURIComponent(token)}; path=/; samesite=lax`;
+          if ((res as any).organization?.name) {
+            window.localStorage.setItem("org_name", (res as any).organization.name);
+          }
+          if ((res as any).user?.email) {
+            window.localStorage.setItem("user_email", (res as any).user.email);
+          }
+        }
+        const cb = params.get("callbackUrl") || "/dashboard";
+        router.push(cb);
+        return;
+      }
+      setError("Login failed");
+    } catch (e) {
+      setError("Incorrect email or password");
+    }
   };
 
   return (
@@ -33,6 +64,7 @@ export default function SigninPage() {
               <input
                 id="email"
                 type="email"
+                name="email"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="you@company.com"
               />
@@ -45,10 +77,13 @@ export default function SigninPage() {
               <input
                 id="password"
                 type="password"
+                name="password"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">

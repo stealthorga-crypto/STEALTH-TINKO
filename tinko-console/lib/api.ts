@@ -60,11 +60,26 @@ const request = async <T>(path: string, method: ApiMethod, options: RequestOptio
 
   while (attempts <= (retry ? retryCount : 0)) {
     try {
+      // Try to add Authorization header from stored token (localStorage or cookie)
+      let authHeader: Record<string, string> = {};
+      try {
+        if (typeof window !== "undefined") {
+          const ls = window.localStorage?.getItem("auth_token");
+          const cookie = typeof document !== "undefined" ? document.cookie : "";
+          const m = cookie.match(/(?:^|; )authjs\.session-token=([^;]+)/);
+          const token = ls || (m ? decodeURIComponent(m[1]) : undefined);
+          if (token) {
+            authHeader = { Authorization: `Bearer ${token}` };
+          }
+        }
+      } catch {}
+
       const response = await fetch(buildUrl(path), {
         method,
         headers: {
           "Content-Type": "application/json",
           ...headers,
+          ...authHeader,
         },
         signal: controller.signal,
         credentials: "include", // Send cookies for session

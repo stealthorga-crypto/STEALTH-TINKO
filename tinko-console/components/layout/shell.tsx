@@ -1,7 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import SidebarNav from "./sidebar-nav";
+import { useEffect, useState } from "react";
 
 export default function Shell({ children }: { children: React.ReactNode }) {
+  const [orgName, setOrgName] = useState<string>("Organization");
+  const [userEmail, setUserEmail] = useState<string>("user@example.com");
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const o = window.localStorage.getItem("org_name");
+        const e = window.localStorage.getItem("user_email");
+        if (o) setOrgName(o);
+        if (e) setUserEmail(e);
+      }
+    } catch {}
+  }, []);
   return (
     <div className="flex min-h-screen bg-slate-50">
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
@@ -17,8 +32,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <span className="text-sm font-medium text-blue-600">U</span>
             </div>
             <div className="text-sm">
-              <p className="font-medium text-slate-900">User Account</p>
-              <p className="text-slate-600">user@example.com</p>
+              <p className="font-medium text-slate-900">{orgName}</p>
+              <p className="text-slate-600">{userEmail}</p>
             </div>
           </div>
         </div>

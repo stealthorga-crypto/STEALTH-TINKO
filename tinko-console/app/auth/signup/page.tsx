@@ -2,15 +2,45 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // No verification - just redirect to dashboard
-    router.push("/dashboard");
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const full_name = String(form.get("name") || "");
+    const email = String(form.get("email") || "");
+    const password = String(form.get("password") || "");
+    const org_name = String(form.get("org") || "");
+    try {
+      const res = await api.post<{ access_token: string; user: any; organization: any }>(
+        "/v1/auth/register",
+        { full_name, email, password, org_name }
+      );
+      const token = (res as any)?.access_token;
+      if (token) {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("auth_token", token);
+          document.cookie = `authjs.session-token=${encodeURIComponent(token)}; path=/; samesite=lax`;
+          if ((res as any).organization?.name) {
+            window.localStorage.setItem("org_name", (res as any).organization.name);
+          }
+          if ((res as any).user?.email) {
+            window.localStorage.setItem("user_email", (res as any).user.email);
+          }
+        }
+        router.push("/onboarding");
+        return;
+      }
+      setError("Registration failed");
+    } catch (e) {
+      setError("Failed to register. Check details and try again.");
+    }
   };
 
   return (
@@ -33,6 +63,7 @@ export default function SignupPage() {
               <input
                 id="name"
                 type="text"
+                name="name"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="John Doe"
               />
@@ -45,6 +76,7 @@ export default function SignupPage() {
               <input
                 id="email"
                 type="email"
+                name="email"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="you@company.com"
               />
@@ -57,8 +89,22 @@ export default function SignupPage() {
               <input
                 id="password"
                 type="password"
+                name="password"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 placeholder="••••••••"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="org" className="block text-sm font-medium text-slate-900 mb-2">
+                Organization Name
+              </label>
+              <input
+                id="org"
+                type="text"
+                name="org"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                placeholder="Acme Inc."
               />
             </div>
 
@@ -70,6 +116,7 @@ export default function SignupPage() {
             </button>
           </form>
 
+          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
           <p className="mt-6 text-center text-sm text-slate-600">
             Already have an account?{" "}
             <Link href="/auth/signin" className="text-blue-600 hover:text-blue-700 font-medium">
