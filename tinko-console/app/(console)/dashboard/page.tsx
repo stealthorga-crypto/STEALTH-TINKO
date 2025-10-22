@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     refresh();
+    // Poll analytics every ~20s while demoing to reflect latest recoveries
     const id = setInterval(refresh, 20000);
     return () => clearInterval(id);
   }, []);
