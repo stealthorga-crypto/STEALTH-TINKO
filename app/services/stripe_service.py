@@ -217,6 +217,33 @@ class StripeService:
                 error_type=type(e).__name__
             )
             return None
+
+    @staticmethod
+    def get_session_status(session_id: str) -> Optional[str]:
+        """Return a simplified status for a Checkout Session: 'paid', 'open', or None on error."""
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            # session.payment_status can be 'paid', 'unpaid', 'no_payment_required'
+            status = getattr(session, "payment_status", None)
+            # Normalize
+            if status == "paid":
+                return "paid"
+            if status in ("unpaid", "no_payment_required", None):
+                return "open"
+            return status
+        except stripe.error.StripeError as e:
+            logger.error("stripe_get_session_status_failed", error=str(e), session_id=session_id)
+            return None
+
+    @staticmethod
+    def get_payment_intent_status(payment_intent_id: str) -> Optional[str]:
+        """Return a simplified status for a Payment Intent: 'succeeded', 'requires_payment_method', etc."""
+        try:
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            return getattr(intent, "status", None)
+        except stripe.error.StripeError as e:
+            logger.error("stripe_get_payment_intent_status_failed", error=str(e), payment_intent_id=payment_intent_id)
+            return None
     
     @staticmethod
     def create_customer(

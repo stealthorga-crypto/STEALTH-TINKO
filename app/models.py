@@ -125,3 +125,17 @@ class RetryPolicy(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     organization = relationship("Organization")
+
+
+class ReconLog(Base):
+    """Reconciliation results between internal state and PSP."""
+    __tablename__ = "recon_logs"
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="CASCADE"), index=True, nullable=False)
+    stripe_checkout_session_id = Column(String(128), nullable=True)
+    stripe_payment_intent_id = Column(String(128), nullable=True)
+    internal_status = Column(String(32), nullable=False)
+    external_status = Column(String(32), nullable=True)
+    result = Column(String(16), nullable=False)  # ok | mismatch
+    details = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
