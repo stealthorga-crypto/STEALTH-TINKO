@@ -28,6 +28,14 @@ def create_link_by_ref(transaction_ref: str, body: schemas.RecoveryLinkRequest =
         expires_at=expires_at,
     )
     db.add(attempt); db.commit(); db.refresh(attempt)
+    # Enqueue initial retry schedule based on active policy
+    try:
+        from app.tasks.retry_tasks import schedule_retry
+        # Use org_id from transaction if available for policy lookup
+        schedule_retry.delay(attempt.id, getattr(txn, 'org_id', None))
+    except Exception:
+        # Non-fatal if Celery not running; link creation should still succeed
+        pass
 
     url = f"{BASE_URL}/pay/retry/{token}"
     return {

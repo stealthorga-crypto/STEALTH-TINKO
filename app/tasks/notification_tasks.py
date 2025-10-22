@@ -198,7 +198,7 @@ def send_recovery_notification(attempt_id: int):
         
         if not attempt:
             logger.warning("notification_failed", reason="attempt_not_found", attempt_id=attempt_id)
-            return
+            return {"status": "not_found", "attempt_id": attempt_id}
         
         # Build recovery link
         base_url = os.getenv('BASE_URL', 'http://localhost:3000')
@@ -267,7 +267,7 @@ def send_recovery_notification(attempt_id: int):
             </html>
             """
             
-            send_email_notification(recipient, subject, body, attempt_id)
+            log = send_email_notification(recipient, subject, body, attempt_id)
             attempt.status = 'sent'
             
         elif attempt.channel == 'sms':
@@ -283,7 +283,7 @@ def send_recovery_notification(attempt_id: int):
                 currency_upper = transaction.currency.upper()
                 message = f"Complete your {currency_upper} {amount_formatted} payment: {payment_link}"
             
-            send_sms_notification(phone_number, message, attempt_id)
+            log = send_sms_notification(phone_number, message, attempt_id)
             attempt.status = 'sent'
             
         elif attempt.channel == 'whatsapp':
@@ -292,6 +292,7 @@ def send_recovery_notification(attempt_id: int):
                 "whatsapp_not_implemented",
                 attempt_id=attempt_id
             )
+            log = None
             attempt.status = 'created'  # Keep in created state
         
         db.commit()
@@ -305,7 +306,10 @@ def send_recovery_notification(attempt_id: int):
         
         # Schedule next retry if needed
         from app.tasks.retry_tasks import schedule_retry
-        schedule_retry.delay(attempt_id)
+        if attempt.status != 'completed' and (attempt.retry_count < attempt.max_retries):
+            schedule_retry.delay(attempt_id)
+        result_status = 'sent' if attempt.status == 'sent' else ('skipped' if attempt.channel == 'whatsapp' else attempt.status)
+        return {"status": result_status, "attempt_id": attempt_id, "notification_log_id": getattr(log, 'id', None)}
         
     except Exception as e:
         logger.error(
@@ -314,7 +318,7 @@ def send_recovery_notification(attempt_id: int):
             exc_info=e
         )
         db.rollback()
-        raise
+        return {"status": "error", "attempt_id": attempt_id, "error": str(e)[:256]}
     finally:
         db.close()
 

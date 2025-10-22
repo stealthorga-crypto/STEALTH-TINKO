@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.worker import celery_app
 from app.db import SessionLocal
-from app.models import RecoveryAttempt, RetryPolicy, Organization
+from app.models import RecoveryAttempt, RetryPolicy, Organization, Transaction
 from app.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -106,6 +106,12 @@ def schedule_retry(attempt_id: int, org_id: Optional[int] = None):
             logger.warning("retry_schedule_failed", reason="attempt_not_found", attempt_id=attempt_id)
             return
         
+        # Resolve org_id from related transaction if not provided
+        if not org_id:
+            if attempt.transaction_id:
+                txn = db.query(Transaction).filter(Transaction.id == attempt.transaction_id).first()
+                org_id = txn.org_id if txn else None
+
         # Get retry policy (default if none configured)
         policy = None
         if org_id:
@@ -127,6 +133,17 @@ def schedule_retry(attempt_id: int, org_id: Optional[int] = None):
                 is_active=True
             )
         
+        # Idempotency: if next_retry_at already set in the future, don't override
+        now = datetime.now(timezone.utc)
+        if attempt.next_retry_at and attempt.next_retry_at > now:
+            logger.info(
+                "retry_schedule_skipped",
+                attempt_id=attempt_id,
+                reason="already_scheduled",
+                next_retry_at=attempt.next_retry_at.isoformat()
+            )
+            return
+
         # Calculate next retry time
         next_retry = calculate_next_retry(attempt, policy)
         
@@ -143,8 +160,9 @@ def schedule_retry(attempt_id: int, org_id: Optional[int] = None):
                 max_retries=policy.max_retries
             )
         else:
-            # Max retries exceeded, mark as cancelled
-            attempt.status = 'cancelled'
+            # Max retries exceeded, mark as cancelled (only if not already completed)
+            if attempt.status != 'completed':
+                attempt.status = 'cancelled'
             db.commit()
             
             logger.info(

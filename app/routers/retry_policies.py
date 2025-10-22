@@ -23,7 +23,9 @@ class RetryPolicyCreate(BaseModel):
     initial_delay_minutes: int = Field(default=60, ge=1, le=1440)
     backoff_multiplier: int = Field(default=2, ge=1, le=5)
     max_delay_minutes: int = Field(default=1440, ge=60, le=10080)
-    enabled_channels: List[str] = Field(default=["email"])
+    enabled_channels: List[str] = Field(default=["email"])  # canonical field
+    # Accept alias 'channels' for client convenience (maps to enabled_channels)
+    channels: Optional[List[str]] = None
 
 
 class RetryPolicyResponse(BaseModel):
@@ -89,10 +91,18 @@ def create_retry_policy(
     for policy in existing_policies:
         policy.is_active = False
     
+    # Determine channels (accept both 'enabled_channels' and 'channels')
+    channels = policy_data.enabled_channels or policy_data.channels or ["email"]
     # Create new policy
     new_policy = RetryPolicy(
         org_id=current_user.org_id,
-        **policy_data.dict()
+        name=policy_data.name,
+        max_retries=policy_data.max_retries,
+        initial_delay_minutes=policy_data.initial_delay_minutes,
+        backoff_multiplier=policy_data.backoff_multiplier,
+        max_delay_minutes=policy_data.max_delay_minutes,
+        enabled_channels=channels,
+        is_active=True
     )
     db.add(new_policy)
     db.commit()
