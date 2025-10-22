@@ -114,6 +114,20 @@ class StripeAdapter(PSPAdapter):
             "price_id": price.id,
             "raw": payment_link,
         }
+
+    def get_session_status(self, session_id: str) -> Dict[str, Any]:
+        """Retrieve a Stripe Checkout Session status and details."""
+        sess = stripe.checkout.Session.retrieve(session_id)
+        return {
+            "session_id": sess.id,
+            "status": getattr(sess, "status", None),
+            "payment_status": getattr(sess, "payment_status", None),
+            "amount_total": getattr(sess, "amount_total", None),
+            "currency": getattr(sess, "currency", None),
+            "customer_email": getattr(getattr(sess, "customer_details", None), "email", None),
+            "payment_intent_id": getattr(sess, "payment_intent", None),
+            "raw": sess,
+        }
     
     def verify_webhook(
         self,

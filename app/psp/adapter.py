@@ -190,6 +190,19 @@ class PSPAdapter(ABC):
             "failed": "failed",
         }
         return status_map.get(provider_status.lower(), "pending")
+
+    @abstractmethod
+    def get_session_status(self, session_id: str) -> Dict[str, Any]:
+        """
+        Retrieve hosted checkout session status/details if supported.
+
+        Args:
+            session_id: Provider checkout session identifier
+
+        Returns:
+            Dict with at least: {"session_id": str, "status": str, ...}
+        """
+        pass
     
     def __repr__(self):
         return f"<{self.__class__.__name__}(provider={getattr(self, 'provider', 'unknown')})>"

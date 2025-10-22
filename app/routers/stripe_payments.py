@@ -242,22 +242,21 @@ async def get_session_status(
     Use this to check if a customer has completed payment.
     """
     try:
-        session = StripeService.retrieve_checkout_session(session_id)
-        
-        if not session:
+        adapter = PSPDispatcher.get_adapter("stripe")
+        data = adapter.get_session_status(session_id)
+        if not data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Session {session_id} not found"
             )
-        
         return SessionStatusResponse(
-            session_id=session.id,
-            status=session.status,
-            payment_status=session.payment_status,
-            amount_total=session.amount_total,
-            currency=session.currency,
-            customer_email=session.customer_details.email if session.customer_details else None,
-            payment_intent_id=session.payment_intent
+            session_id=data.get("session_id", session_id),
+            status=data.get("status"),
+            payment_status=data.get("payment_status"),
+            amount_total=data.get("amount_total"),
+            currency=data.get("currency"),
+            customer_email=data.get("customer_email"),
+            payment_intent_id=data.get("payment_intent_id"),
         )
         
     except HTTPException:
