@@ -36,7 +36,7 @@ logger = get_logger(__name__)
 from .db import Base, engine
 
 # 4) Routers (import-guarded so app still boots even if one has an error)
-events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = payments_router = stripe_webhook_router = auth_router = retry_router = stripe_payments_router = None
+events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = payments_router = stripe_webhook_router = auth_router = retry_router = stripe_payments_router = maintenance_router = None
 
 try:
     from .routers.auth import router as auth_router
@@ -92,6 +92,11 @@ except Exception:
 
 try:
     from .routers.analytics import router as analytics_router
+except Exception:
+    pass
+
+try:
+    from .routers.maintenance import router as maintenance_router
 except Exception:
     pass
 
@@ -151,3 +156,5 @@ if stripe_webhook_router:
     app.include_router(stripe_webhook_router)
 if analytics_router:
     app.include_router(analytics_router)
+if maintenance_router:
+    app.include_router(maintenance_router)
