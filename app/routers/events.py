@@ -5,6 +5,7 @@ from typing import Optional
 
 from ..deps import get_db
 from .. import models, schemas
+from ..services.classifier import classify_event
 from ..security import decode_jwt
 
 router = APIRouter(prefix="/v1/events", tags=["events"])
@@ -64,6 +65,13 @@ def payment_failed(
     if payload.metadata: combined_meta["metadata"] = payload.metadata
     if extras: combined_meta["extras"] = extras
     if idempotency_key: combined_meta["idempotency_key"] = idempotency_key
+    # Optional: persist classifier category for analytics/routing
+    try:
+        clf = classify_event(getattr(payload, 'gateway', None), getattr(payload, 'failure_reason', None))
+        if clf and clf.get('category'):
+            combined_meta["category"] = clf['category']
+    except Exception:
+        pass
 
     fe = models.FailureEvent(
         transaction_id=txn.id,
