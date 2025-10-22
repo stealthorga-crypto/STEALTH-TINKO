@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+// Console Settings: Retry Policy editor wired to /v1/retry API
 import { api } from "@/lib/api";
 
 type Policy = {

@@ -68,6 +68,16 @@ class SessionStatusResponse(BaseModel):
     payment_intent_id: Optional[str]
 
 
+class PublicCheckoutRequest(BaseModel):
+    transaction_ref: str
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
+
+class PublicCheckoutResponse(BaseModel):
+    ok: bool
+    data: Dict[str, Any]
+
+
 # Endpoints
 @router.post("/checkout-sessions", response_model=CheckoutSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_checkout_session(
@@ -337,6 +347,41 @@ async def stripe_webhook_handler(
         # Stripe will retry failed webhooks
     
     return {"status": "received"}
+
+
+@router.post("/checkout", response_model=PublicCheckoutResponse)
+async def create_checkout_public(
+    request: PublicCheckoutRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to create a Stripe Checkout Session for a known transaction_ref.
+    Intended for payer-facing flows; derives amount/currency from Transaction.
+    """
+    txn = db.query(Transaction).filter(Transaction.transaction_ref == request.transaction_ref).first()
+    if not txn or not txn.amount or not txn.currency:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found or incomplete")
+    try:
+        adapter = PSPDispatcher.get_adapter("stripe")
+        base = os.getenv("BASE_URL", "http://localhost:3000")
+        res = adapter.create_checkout_session(
+            amount=txn.amount,
+            currency=txn.currency,
+            success_url=request.success_url or (base + "/pay/success"),
+            cancel_url=request.cancel_url or (base + "/pay/cancel"),
+            metadata={"transaction_ref": request.transaction_ref}
+        )
+        # Persist IDs/URL for later reconciliation
+        raw = res.get("raw")
+        txn.stripe_checkout_session_id = res.get("session_id")
+        txn.stripe_payment_intent_id = getattr(raw, "payment_intent", None)
+        txn.payment_link_url = res.get("url")
+        db.commit()
+        return {"ok": True, "data": {"url": res.get("url")}}
+    except Exception as e:
+        db.rollback()
+        logger.error("public_checkout_creation_failed", error=str(e), transaction_ref=request.transaction_ref)
+        raise HTTPException(status_code=500, detail="Failed to create checkout session")
 
 
 @router.get("/ping")
