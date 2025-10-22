@@ -15,6 +15,10 @@ from ..deps import get_current_user
 from ..models import Transaction, RecoveryAttempt, User
 from ..services.stripe_service import StripeService
 from ..psp.dispatcher import PSPDispatcher
+try:
+    import stripe  # type: ignore
+except Exception:
+    stripe = None  # type: ignore
 
 logger = structlog.get_logger(__name__)
 
@@ -334,6 +338,21 @@ async def stripe_webhook_handler(
         # Stripe will retry failed webhooks
     
     return {"status": "received"}
+
+
+@router.get("/ping")
+async def stripe_ping():
+    """Lightweight readiness check for Stripe configuration on the server."""
+    if stripe is None or not os.getenv("STRIPE_SECRET_KEY"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Stripe not configured")
+    try:
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+        # Simple API call to verify credentials
+        _ = stripe.Balance.retrieve()
+        return {"ok": True}
+    except Exception as e:
+        logger.error("stripe_ping_failed", error=str(e))
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Stripe ping failed")
 
 
 # Webhook event handlers

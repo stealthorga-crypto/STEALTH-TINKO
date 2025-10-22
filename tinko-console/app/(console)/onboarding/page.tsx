@@ -1,72 +1,125 @@
-﻿import { CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
-import { EmptyState } from "@/components/states/empty-state";
+﻿"use client";
 
-const checklist = [
-  {
-    title: "Connect merchant data sources",
-    description: "Link payment gateway, POS, and ERP systems to sync outstanding balances.",
-    status: "In progress",
-    icon: Clock3,
-  },
-  {
-    title: "Map customer identifiers",
-    description: "Upload CSV or configure API mapping to match Tinko IDs with your finance data.",
-    status: "Pending",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Schedule recovery automations",
-    description: "Define the cadence for outreach sequences and assign escalation owners.",
-    status: "Pending",
-    icon: CheckCircle2,
-  },
-];
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function OnboardingPage() {
+  const [step, setStep] = useState(1);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  // Retry policy fields
+  const [name, setName] = useState("Default Policy");
+  const [maxRetries, setMaxRetries] = useState(3);
+  const [initialDelay, setInitialDelay] = useState(60);
+  const [backoffMultiplier, setBackoffMultiplier] = useState(2);
+  const [maxDelay, setMaxDelay] = useState(1440);
+  const [channels, setChannels] = useState<string[]>(["email"]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const toggleChannel = (c: string) => {
+    setChannels(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  };
+
+  const testStripe = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      await api.get("/v1/payments/stripe/ping");
+      setTestResult("Stripe connection OK");
+      setStep(2);
+    } catch (e) {
+      setTestResult("Stripe not configured on server. Set STRIPE_SECRET_KEY and try again.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const savePolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post("/v1/retry/policies", {
+        name,
+        max_retries: Number(maxRetries),
+        initial_delay_minutes: Number(initialDelay),
+        backoff_multiplier: Number(backoffMultiplier),
+        max_delay_minutes: Number(maxDelay),
+        channels,
+      });
+      setSaved(true);
+    } catch (e) {
+      setSaved(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Onboarding"
-        description="Track readiness tasks that unlock automated recovery workflows across your merchant portfolio."
-        action={<Button>View onboarding guide</Button>}
-      />
+    <div className="p-8 max-w-3xl">
+      <h1 className="text-2xl font-semibold text-slate-900 mb-2">Onboarding</h1>
+      <p className="text-slate-600 mb-6">Two quick steps to get your console ready.</p>
 
-      <SectionCard title="Implementation checklist" description="Mark items complete as your team progresses.">
-        <div className="space-y-6">
-          {checklist.map((item) => (
-            <div
-              key={item.title}
-              className="flex flex-col gap-3 rounded-2xl border border-border/50 bg-white/80 p-4 shadow-sm sm:flex-row sm:items-center"
-            >
-              <div className="flex items-center gap-3 text-primary">
-                <item.icon className="h-5 w-5" aria-hidden />
-                <p className="text-sm font-semibold uppercase tracking-wide text-primary">{item.status}</p>
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-base font-medium text-foreground/90">{item.title}</p>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-              </div>
-              <Button variant="outline" size="sm" className="self-end sm:self-center">
-                Mark complete
-              </Button>
-            </div>
-          ))}
+      {step === 1 && (
+        <div className="bg-white border rounded p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Step 1: Connect Stripe</h2>
+          <p className="text-sm text-slate-700">
+            Server-side only: set STRIPE_SECRET_KEY in your API environment. This wizard does not store secrets in the browser.
+          </p>
+          <button
+            onClick={testStripe}
+            disabled={testing}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
+          >
+            {testing ? "Testing…" : "Test connection"}
+          </button>
+          {testResult && <p className="text-sm text-slate-700">{testResult}</p>}
         </div>
-      </SectionCard>
+      )}
 
-      <SectionCard
-        title="Integrations status"
-        description="As soon as your systems are linked, status updates and data sync logs will appear here."
-      >
-        <EmptyState
-          title="No integrations connected"
-          description="Add your first integration via the developer logs page to unlock automated data sync."
-          action={<Button variant="outline">Go to developer logs</Button>}
-        />
-      </SectionCard>
+      {step === 2 && (
+        <div className="bg-white border rounded p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Step 2: Set a retry policy</h2>
+          <form onSubmit={savePolicy} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Policy name</label>
+              <input className="w-full border rounded px-3 py-2" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Initial delay (min)</label>
+                <input type="number" className="w-full border rounded px-3 py-2" value={initialDelay} onChange={e => setInitialDelay(Number(e.target.value))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Backoff multiplier</label>
+                <input type="number" step="0.1" className="w-full border rounded px-3 py-2" value={backoffMultiplier} onChange={e => setBackoffMultiplier(Number(e.target.value))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Max retries</label>
+                <input type="number" className="w-full border rounded px-3 py-2" value={maxRetries} onChange={e => setMaxRetries(Number(e.target.value))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Max delay (min)</label>
+                <input type="number" className="w-full border rounded px-3 py-2" value={maxDelay} onChange={e => setMaxDelay(Number(e.target.value))} />
+              </div>
+            </div>
+            <div>
+              <div className="block text-sm font-medium text-slate-700 mb-2">Channels</div>
+              {(["email", "sms", "whatsapp"] as const).map(c => (
+                <label key={c} className="inline-flex items-center gap-2 mr-6 text-sm">
+                  <input type="checkbox" checked={channels.includes(c)} onChange={() => toggleChannel(c)} />
+                  <span className="capitalize">{c}</span>
+                </label>
+              ))}
+            </div>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded" disabled={saving}>
+              {saving ? "Saving…" : "Save policy"}
+            </button>
+            {saved && <span className="ml-3 text-sm text-green-700">Policy saved ✓</span>}
+          </form>
+        </div>
+      )}
     </div>
   );
 }
