@@ -71,6 +71,20 @@ Stealth-Reecovery/
    - [Docker Guide](./CONSOLIDATED_DOCUMENTATION.md#docker-guide)
    - [Testing Guide](./CONSOLIDATED_DOCUMENTATION.md#testing--quality)
 
+### Stripe Webhook (development)
+
+To receive Stripe events locally, use the Stripe CLI to forward webhooks to the API. Ensure `STRIPE_WEBHOOK_SECRET` is set from the CLI output.
+
+Example:
+
+1) Start a listener:
+
+   stripe listen --forward-to http://localhost:8000/v1/webhooks/stripe
+
+2) Copy the `whsec_...` secret from the CLI output into your `.env` as `STRIPE_WEBHOOK_SECRET` and restart the API.
+
+Optionally restrict to specific events with `--events payment_intent.succeeded,payment_intent.payment_failed`
+
 ## 📊 Current Status
 
 ✅ **Backend:** Production ready with Stripe integration  
