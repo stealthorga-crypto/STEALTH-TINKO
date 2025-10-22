@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
+import os
 import structlog
 
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import Transaction, RecoveryAttempt, User
 from ..services.stripe_service import StripeService
+from ..psp.dispatcher import PSPDispatcher
 
 logger = structlog.get_logger(__name__)
 
@@ -101,22 +103,22 @@ async def create_checkout_session(
     }
     
     try:
-        # Create checkout session via Stripe
-        result = StripeService.create_checkout_session(
+        # Create checkout session via PSP adapter (Stripe)
+        adapter = PSPDispatcher.get_adapter("stripe")
+        result = adapter.create_checkout_session(
             amount=request.amount,
             currency=request.currency,
-            transaction_ref=request.transaction_ref,
-            customer_email=request.customer_email or transaction.customer_email,
-            customer_phone=request.customer_phone or transaction.customer_phone,
-            success_url=request.success_url,
-            cancel_url=request.cancel_url,
-            metadata=metadata
+            success_url=request.success_url or (os.getenv("BASE_URL", "http://localhost:3000") + "/pay/success?session_id={CHECKOUT_SESSION_ID}"),
+            cancel_url=request.cancel_url or (os.getenv("BASE_URL", "http://localhost:3000") + "/pay/cancel"),
+            metadata=metadata,
+            product_name=f"Payment Recovery - {request.transaction_ref}"
         )
         
         # Update transaction with Stripe IDs
+        raw = result.get("raw")
         transaction.stripe_checkout_session_id = result["session_id"]
-        transaction.stripe_payment_intent_id = result["payment_intent_id"]
-        transaction.payment_link_url = result["checkout_url"]
+        transaction.stripe_payment_intent_id = getattr(raw, "payment_intent", None)
+        transaction.payment_link_url = result["url"]
         if request.customer_email:
             transaction.customer_email = request.customer_email
         if request.customer_phone:
@@ -133,7 +135,13 @@ async def create_checkout_session(
             org_id=current_user.org_id
         )
         
-        return CheckoutSessionResponse(**result)
+        # Build response compatible with existing schema
+        return CheckoutSessionResponse(
+            session_id=result["session_id"],
+            payment_intent_id=getattr(raw, "payment_intent", None),
+            checkout_url=result["url"],
+            expires_at=datetime.fromtimestamp(getattr(raw, "expires_at", int(datetime.utcnow().timestamp())))
+        )
         
     except Exception as e:
         db.rollback()
@@ -181,12 +189,13 @@ async def create_payment_link(
     }
     
     try:
-        # Create payment link via Stripe
-        result = StripeService.create_payment_link(
+        # Create payment link via PSP adapter (Stripe)
+        adapter = PSPDispatcher.get_adapter("stripe")
+        result = adapter.create_payment_link(
             amount=request.amount,
             currency=request.currency,
-            transaction_ref=request.transaction_ref,
-            metadata=metadata
+            metadata=metadata,
+            product_name=f"Payment Recovery - {request.transaction_ref}"
         )
         
         # Update transaction with payment link URL

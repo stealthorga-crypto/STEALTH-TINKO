@@ -84,6 +84,36 @@ class StripeAdapter(PSPAdapter):
             "status": session.status,
             "raw": session
         }
+
+    def create_payment_link(
+        self,
+        amount: int,
+        currency: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Create a Stripe Payment Link via Product + Price."""
+        # Create product and price
+        product = stripe.Product.create(
+            name=kwargs.get("product_name", "Payment Recovery"),
+            metadata=metadata or {},
+        )
+        price = stripe.Price.create(
+            product=product.id,
+            unit_amount=amount,
+            currency=currency,
+        )
+        payment_link = stripe.PaymentLink.create(
+            line_items=[{"price": price.id, "quantity": 1}],
+            metadata=metadata or {},
+        )
+        return {
+            "payment_link_id": payment_link.id,
+            "url": payment_link.url,
+            "product_id": product.id,
+            "price_id": price.id,
+            "raw": payment_link,
+        }
     
     def verify_webhook(
         self,

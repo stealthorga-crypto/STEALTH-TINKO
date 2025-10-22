@@ -100,6 +100,31 @@ class PSPAdapter(ABC):
                 - any provider-specific fields
         """
         pass
+
+    @abstractmethod
+    def create_payment_link(
+        self,
+        amount: int,
+        currency: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Create a payment link (if supported by provider).
+
+        Args:
+            amount: Amount in smallest currency unit
+            currency: ISO currency code
+            metadata: Additional metadata
+            **kwargs: Provider-specific parameters
+
+        Returns:
+            Dict containing:
+                - payment_link_id
+                - url
+                - any provider-specific fields
+        """
+        pass
     
     @abstractmethod
     def verify_webhook(
