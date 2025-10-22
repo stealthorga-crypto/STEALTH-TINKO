@@ -34,3 +34,9 @@ def test_unknown_defaults():
     data = _post({"code": "weird_code", "message": "n/a"})
     assert data["category"] == "unknown"
     assert "alt" in data
+
+
+def test_code_3ds_timeout_maps_to_auth_timeout():
+    data = _post({"code": "3ds_timeout", "message": None})
+    assert data["category"] == "auth_timeout"
+    assert "recommendation" in data
