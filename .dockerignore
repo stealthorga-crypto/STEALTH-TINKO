@@ -24,3 +24,7 @@ venv/
 *.sqlite
 *.db
 data/
+# Ignore nested duplicate repo and frontend build artifacts
+Stealth-Reecovery/**
+**/node_modules/**
+**/.next/**
