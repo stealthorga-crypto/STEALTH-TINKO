@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/rules", label: "Rules" },
-  { href: "/templates", label: "Templates" },
-  { href: "/settings", label: "Settings" },
-  { href: "/developer", label: "Developer" },
+  { href: "/dashboard", labelKey: "nav.dashboard" },
+  { href: "/rules", labelKey: "nav.rules" },
+  { href: "/templates", labelKey: "nav.templates" },
+  { href: "/settings", labelKey: "nav.settings" },
+  { href: "/developer", labelKey: "nav.developer" },
+  { href: "/help", labelKey: "nav.help" },
 ];
 
 export default function SidebarNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <nav className="flex-1 p-4">
@@ -29,7 +32,7 @@ export default function SidebarNav() {
                     : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             </li>
           );
