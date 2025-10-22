@@ -77,11 +77,11 @@ To receive Stripe events locally, use the Stripe CLI to forward webhooks to the 
 
 Example:
 
-1) Start a listener:
+1. Start a listener:
 
    stripe listen --forward-to http://localhost:8000/v1/webhooks/stripe
 
-2) Copy the `whsec_...` secret from the CLI output into your `.env` as `STRIPE_WEBHOOK_SECRET` and restart the API.
+2. Copy the `whsec_...` secret from the CLI output into your `.env` as `STRIPE_WEBHOOK_SECRET` and restart the API.
 
 Optionally restrict to specific events with `--events payment_intent.succeeded,payment_intent.payment_failed`
 

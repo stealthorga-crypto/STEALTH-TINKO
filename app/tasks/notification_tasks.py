@@ -47,6 +47,20 @@ def send_email_notification(
     db.commit()
     
     try:
+        # In development, allow dry-run to avoid real SMTP dependency
+        if os.getenv('SMTP_ENABLE', '0') != '1':
+            log.status = 'sent'
+            log.provider = 'smtp-dryrun'
+            log.sent_at = datetime.now(timezone.utc)
+            db.commit()
+            logger.info(
+                "email_sent_dryrun",
+                recipient=recipient,
+                notification_log_id=log.id,
+                recovery_attempt_id=recovery_attempt_id
+            )
+            return log
+
         smtp_host = os.getenv('SMTP_HOST', 'localhost')
         smtp_port = int(os.getenv('SMTP_PORT', '1025'))
         smtp_user = os.getenv('SMTP_USER', '')
@@ -309,7 +323,9 @@ def send_recovery_notification(attempt_id: int):
         if attempt.status != 'completed' and (attempt.retry_count < attempt.max_retries):
             schedule_retry.delay(attempt_id)
         result_status = 'sent' if attempt.status == 'sent' else ('skipped' if attempt.channel == 'whatsapp' else attempt.status)
-        return {"status": result_status, "attempt_id": attempt_id, "notification_log_id": getattr(log, 'id', None)}
+        # Return both keys for backward-compat, but prefer 'log_id' per API contract
+        log_id = getattr(log, 'id', None)
+        return {"status": result_status, "attempt_id": attempt_id, "log_id": log_id, "notification_log_id": log_id}
         
     except Exception as e:
         logger.error(

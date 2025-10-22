@@ -22,7 +22,8 @@ def create_link_by_ref(transaction_ref: str, body: schemas.RecoveryLinkRequest =
 
     attempt = models.RecoveryAttempt(
         transaction_id=txn.id,
-        channel=body.channel or "link",
+        # Default to email channel so notifications can be delivered via retry engine
+        channel=body.channel or "email",
         token=token,
         status="created",
         expires_at=expires_at,

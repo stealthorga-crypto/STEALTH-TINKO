@@ -1,12 +1,13 @@
 # .dockerignore for Backend
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+
+**pycache**/
+_.pyc
+_.pyo
+_.pyd
 .Python
-*.so
-*.egg
-*.egg-info/
+_.so
+_.egg
+_.egg-info/
 dist/
 build/
 .pytest_cache/
@@ -19,12 +20,14 @@ env/
 venv/
 .git/
 .gitignore
-*.log
+_.log
 .DS_Store
-*.sqlite
-*.db
+_.sqlite
+\*.db
 data/
+
 # Ignore nested duplicate repo and frontend build artifacts
-Stealth-Reecovery/**
+
+Stealth-Reecovery/\*\*
 **/node_modules/**
 **/.next/**
