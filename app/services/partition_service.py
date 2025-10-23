@@ -60,3 +60,42 @@ def ensure_current_month_partitions() -> List[str]:
             created.append(part_table)
 
     return created
+
+
+def prune_old_partitions(months: int) -> List[str]:
+    """Drop monthly partitions older than N months.
+
+    - Postgres: DROP TABLE public.transactions_yYYYmMM
+    - Others (e.g., SQLite): return []
+    """
+    dropped: List[str] = []
+    if engine.dialect.name != "postgresql":
+        return dropped
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=months * 30)
+
+    with engine.begin() as conn:
+        # Find existing partition tables matching naming pattern
+        res = conn.execute(text("""
+            SELECT c.relname
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relname LIKE 'transactions_y%m%'
+        """))
+        for (relname,) in res.fetchall():
+            try:
+                # Parse suffix to date
+                # relname e.g., transactions_y2025m01
+                parts = relname.split('_')
+                suffix = parts[-1]
+                year = int(suffix[1:5])
+                month = int(suffix[6:8])
+                dt = datetime(year, month, 1, tzinfo=timezone.utc)
+                if dt < cutoff:
+                    conn.execute(text(f"DROP TABLE IF EXISTS public.{relname} CASCADE"))
+                    dropped.append(relname)
+            except Exception:
+                # Ignore parsing errors
+                pass
+
+    return dropped

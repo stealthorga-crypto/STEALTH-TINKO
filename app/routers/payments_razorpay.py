@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_current_user
-from app.models import Transaction, User
+from app.models import Transaction, User, PspEvent
 from app import models
 from app.services.payments.razorpay_adapter import RazorpayAdapter
 from app.analytics.sink import emit
@@ -121,7 +121,7 @@ async def create_order_public(body: CreateOrderIn, db: Session = Depends(get_db)
         raise HTTPException(status_code=502, detail="Failed to create order")
 
 
-@router.post("/webhooks", include_in_schema=False)
+@router.post("/webhooks", include_in_schema=True)
 async def razorpay_webhook(request, db: Session = Depends(get_db)):
     # FastAPI Request for body/headers
     from fastapi import Request as FastAPIRequest
@@ -138,7 +138,7 @@ async def razorpay_webhook(request, db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid signature")
 
-    # Process event types: payment.captured / order.paid
+    # Process event types: payment.captured / order.paid (idempotent by PspEvent)
     etype = event.get("event") or event.get("event_type")
     payload_obj = event.get("payload") or {}
     order_id = None
@@ -150,6 +150,20 @@ async def razorpay_webhook(request, db: Session = Depends(get_db)):
     elif "order" in payload_obj:
         order = payload_obj.get("order", {}).get("entity", {})
         order_id = order.get("id")
+
+    # Construct deterministic id for idempotency
+    uid = None
+    if etype and (payment_id or order_id):
+        uid = f"razorpay:{etype}:{payment_id or order_id}"
+
+    if uid:
+        # Record event idempotently
+        existing = db.query(PspEvent).filter(PspEvent.psp_event_id == uid).first()
+        if existing:
+            return {"status": "ok", "idempotent": True}
+        rec = PspEvent(provider="razorpay", event_type=etype or "unknown", psp_event_id=uid, payload=event)
+        db.add(rec)
+        db.flush()
 
     if order_id:
         txn = db.query(Transaction).filter(Transaction.razorpay_order_id == order_id).first()

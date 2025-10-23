@@ -48,7 +48,15 @@ def revenue_recovered(
         RecoveryAttempt.created_at >= start,
         RecoveryAttempt.created_at <= end,
     ).scalar() or 0
-    return {"total_recovered": int(total), "completed_count": int(count), "from": start.isoformat(), "to": end.isoformat()}
+    # Back-compat and console shape
+    return {
+        "total_recovered": int(total),
+        "completed_count": int(count),
+        "currency": "INR",
+        "amount_cents": int(total),
+        "from": start.isoformat(),
+        "to": end.isoformat(),
+    }
 
 
 @router.get("/recovery_rate")
@@ -71,8 +79,15 @@ def recovery_rate(
         RecoveryAttempt.created_at >= start,
         RecoveryAttempt.created_at <= end,
     ).scalar() or 0
-    rate = round((completed / total * 100.0), 2) if total else 0.0
-    return {"recovery_rate": rate, "total_attempts": int(total), "completed": int(completed), "from": start.isoformat(), "to": end.isoformat()}
+    pct = round((completed / total * 100.0), 2) if total else 0.0
+    return {
+        "recovery_rate": pct,
+        "rate": round((completed / total), 4) if total else 0.0,
+        "total_attempts": int(total),
+        "completed": int(completed),
+        "from": start.isoformat(),
+        "to": end.isoformat(),
+    }
 
 
 @router.get("/attempts_summary")
@@ -99,7 +114,14 @@ def attempts_summary(
         FailureEvent.created_at <= end,
     ).group_by(FailureEvent.reason).all()
     category_counts = {cat or "unknown": int(c) for cat, c in by_cat}
-    return {"by_status": status_counts, "by_category": category_counts, "from": start.isoformat(), "to": end.isoformat()}
+    # Include by_channel key for console shape (not computed here)
+    return {
+        "by_status": status_counts,
+        "by_category": category_counts,
+        "by_channel": {},
+        "from": start.isoformat(),
+        "to": end.isoformat(),
+    }
 
 
 @router.get("/summary")

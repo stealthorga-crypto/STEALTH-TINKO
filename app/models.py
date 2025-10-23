@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, func, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, func, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .db import Base
 
@@ -142,4 +142,19 @@ class ReconLog(Base):
     external_status = Column(String(32), nullable=True)
     result = Column(String(16), nullable=False)  # ok | mismatch
     details = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PspEvent(Base):
+    """Idempotent store of PSP events to ensure single processing.
+
+    psp_event_id should be a deterministic unique identifier, e.g.,
+    provider + ':' + event_type + ':' + (payment_id or order_id).
+    """
+    __tablename__ = "psp_events"
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(32), nullable=False)
+    event_type = Column(String(64), nullable=False)
+    psp_event_id = Column(String(160), nullable=False, unique=True, index=True)
+    payload = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -45,7 +45,7 @@ def get_by_token(token: str, db: Session = Depends(get_db)):
         txn = db.query(models.Transaction).filter(models.Transaction.id == attempt.transaction_id).first()
         txn_ref = txn.transaction_ref if txn else None
 
-    return {"ok": True, "data": {"transaction_ref": txn_ref, "status": attempt.status}, "error": None}
+    return {"ok": True, "data": {"transaction_ref": txn_ref, "status": attempt.status, "attempt_id": attempt.id}, "error": None}
 
 
 @router.post("/by_token/{token}/open")

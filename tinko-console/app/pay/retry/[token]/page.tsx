@@ -5,13 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { SchedulePicker } from "@/components/SchedulePicker";
 
-type RecoverByToken = { ok: boolean; data?: { transaction_ref?: string } };
+type RecoverByToken = { ok: boolean; data?: { transaction_ref?: string; attempt_id?: number } };
 
 export default function RetryTokenPage() {
   const { token } = useParams<{ token: string }>();
   const router = useRouter();
   const [ref, setRef] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [attemptId, setAttemptId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,7 +24,8 @@ export default function RetryTokenPage() {
           setError("Invalid or expired recovery link");
           return;
         }
-        setRef(info.data.transaction_ref);
+  setRef(info.data.transaction_ref);
+  setAttemptId(info.data.attempt_id ?? null);
       } catch (e) {
         console.error(e);
         setError("Failed to load recovery details");
@@ -33,6 +36,30 @@ export default function RetryTokenPage() {
 
   const proceedToPay = () => {
     router.push(`/pay/retry/${token}/checkout`);
+  };
+
+  const saveSchedule = async () => {
+    if (!picked || !attemptId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8010"}/v1/recoveries/${attemptId}/next_retry_at`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ next_retry_at: picked }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(`Save failed: ${res.status} ${t}`);
+      }
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to save schedule");
+      return;
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (error) {
@@ -57,7 +84,16 @@ export default function RetryTokenPage() {
         <h2 className="text-lg font-medium">Suggested retry windows</h2>
         <SchedulePicker refId={ref} onSelect={setPicked} />
         {picked && (
-          <div className="text-sm text-green-700">Selected: {new Date(picked).toLocaleString()}</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-green-700">Selected: {new Date(picked).toLocaleString()}</div>
+            <button
+              disabled={saving}
+              onClick={saveSchedule}
+              className="px-3 py-1.5 bg-emerald-600 text-white rounded-md disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save schedule"}
+            </button>
+          </div>
         )}
       </div>
 
