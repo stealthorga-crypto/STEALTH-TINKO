@@ -1,115 +1,150 @@
 """
-Analytics API endpoints.
+Analytics API endpoints (Razorpay-agnostic; org-scoped).
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import datetime, timezone
+from typing import Optional
+
 from app.db import get_db
-from app.deps import get_current_user, require_roles
-from app.models import User, Transaction, FailureEvent, ReconLog
-from datetime import datetime, timedelta, timezone
-from app.services.stripe_service import StripeService
-from app.services import analytics
+from app.deps import get_current_user
+from app.models import User, Transaction, RecoveryAttempt, FailureEvent
 
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics"])
 
-@router.get("/recovery_rate")
-def get_recovery_rate(
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get recovery rate percentage over specified period."""
-    return analytics.get_recovery_rate(db, current_user.org_id, days)
 
-@router.get("/failure_categories")
-def get_failure_categories(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get breakdown of failure events by category."""
-    return analytics.get_failure_categories(db, current_user.org_id)
+def _parse_dt(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
 
 @router.get("/revenue_recovered")
-def get_revenue_recovered(
-    days: int = 30,
+def revenue_recovered(
+    from_: Optional[str] = Query(None, alias="from"),
+    to_: Optional[str] = Query(None, alias="to"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Get total revenue recovered over period."""
-    return analytics.get_revenue_recovered(db, current_user.org_id, days)
-
-@router.get("/attempts_by_channel")
-def get_attempts_by_channel(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Get recovery attempts breakdown by channel."""
-    return analytics.get_attempts_by_channel(db, current_user.org_id)
-
-
-@router.post("/recon/run", dependencies=[Depends(require_roles(["admin"]))])
-def run_reconciliation(
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Run a read-only reconciliation against Stripe and record results.
-
-    Returns counts: {checked, ok, mismatches}.
-    """
-    window_start = datetime.now(timezone.utc) - timedelta(days=days)
-
-    # Find recent transactions for this org with Stripe IDs
-    txns = db.query(Transaction).filter(
+    start = _parse_dt(from_) or datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = _parse_dt(to_) or datetime.now(timezone.utc)
+    q = db.query(func.coalesce(func.sum(Transaction.amount), 0)).join(
+        RecoveryAttempt, RecoveryAttempt.transaction_id == Transaction.id, isouter=True
+    ).filter(
         Transaction.org_id == current_user.org_id,
-        Transaction.created_at >= window_start,
-        (Transaction.stripe_checkout_session_id.isnot(None)) | (Transaction.stripe_payment_intent_id.isnot(None))
-    ).all()
+        RecoveryAttempt.status == "completed",
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    )
+    total = q.scalar() or 0
+    # Currency could be mixed; return raw total and count for simplicity
+    count = db.query(func.count(RecoveryAttempt.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.status == "completed",
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    ).scalar() or 0
+    return {"total_recovered": int(total), "completed_count": int(count), "from": start.isoformat(), "to": end.isoformat()}
 
-    checked = 0
-    ok = 0
-    mismatches = 0
 
-    for txn in txns:
-        checked += 1
-        # Determine internal status via event log heuristic
-        paid_event = db.query(FailureEvent).filter(
-            FailureEvent.transaction_id == txn.id,
-            FailureEvent.reason == "payment_succeeded"
-        ).first()
-        internal_status = "paid" if paid_event else "unpaid"
+@router.get("/recovery_rate")
+def recovery_rate(
+    from_: Optional[str] = Query(None, alias="from"),
+    to_: Optional[str] = Query(None, alias="to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    start = _parse_dt(from_) or datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = _parse_dt(to_) or datetime.now(timezone.utc)
+    total = db.query(func.count(RecoveryAttempt.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    ).scalar() or 0
+    completed = db.query(func.count(RecoveryAttempt.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.status == "completed",
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    ).scalar() or 0
+    rate = round((completed / total * 100.0), 2) if total else 0.0
+    return {"recovery_rate": rate, "total_attempts": int(total), "completed": int(completed), "from": start.isoformat(), "to": end.isoformat()}
 
-        # Fetch external status
-        external_status = None
-        if txn.stripe_checkout_session_id:
-            external_status = StripeService.get_session_status(txn.stripe_checkout_session_id)
-        elif txn.stripe_payment_intent_id:
-            pi_status = StripeService.get_payment_intent_status(txn.stripe_payment_intent_id)
-            external_status = "paid" if pi_status == "succeeded" else "open"
 
-        # Compare
-        is_ok = (
-            (internal_status == "paid" and external_status == "paid") or
-            (internal_status == "unpaid" and external_status in ("open", None))
-        )
+@router.get("/attempts_summary")
+def attempts_summary(
+    from_: Optional[str] = Query(None, alias="from"),
+    to_: Optional[str] = Query(None, alias="to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    start = _parse_dt(from_) or datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = _parse_dt(to_) or datetime.now(timezone.utc)
+    # Group by status
+    by_status = db.query(RecoveryAttempt.status, func.count(RecoveryAttempt.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    ).group_by(RecoveryAttempt.status).all()
+    status_counts = {s or "unknown": int(c) for s, c in by_status}
 
-        if is_ok:
-            ok += 1
-        else:
-            mismatches += 1
+    # Group by failure category (if recorded in FailureEvent.reason)
+    by_cat = db.query(FailureEvent.reason, func.count(FailureEvent.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        FailureEvent.created_at >= start,
+        FailureEvent.created_at <= end,
+    ).group_by(FailureEvent.reason).all()
+    category_counts = {cat or "unknown": int(c) for cat, c in by_cat}
+    return {"by_status": status_counts, "by_category": category_counts, "from": start.isoformat(), "to": end.isoformat()}
 
-        # Log recon result
-        log = ReconLog(
-            transaction_id=txn.id,
-            stripe_checkout_session_id=txn.stripe_checkout_session_id,
-            stripe_payment_intent_id=txn.stripe_payment_intent_id,
-            internal_status=internal_status,
-            external_status=external_status or "unknown",
-            result="ok" if is_ok else "mismatch",
-            details={"transaction_ref": txn.transaction_ref}
-        )
-        db.add(log)
 
-    db.commit()
+@router.get("/summary")
+def summary(
+    from_: Optional[str] = Query(None, alias="from"),
+    to_: Optional[str] = Query(None, alias="to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    start = _parse_dt(from_) or datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = _parse_dt(to_) or datetime.now(timezone.utc)
+    recovered_total = db.query(func.coalesce(func.sum(Transaction.amount), 0)).join(
+        RecoveryAttempt, RecoveryAttempt.transaction_id == Transaction.id, isouter=True
+    ).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.status == "completed",
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    ).scalar() or 0
+    # Simple failure breakdown across FailureEvent.reason
+    by_cat = db.query(FailureEvent.reason, func.count(FailureEvent.id)).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        FailureEvent.created_at >= start,
+        FailureEvent.created_at <= end,
+    ).group_by(FailureEvent.reason).all()
+    failure = {cat or "other": int(c) for cat, c in by_cat}
+    return {"recovered_amount_30d": int(recovered_total), "failure_categories": failure}
 
-    return {"checked": checked, "ok": ok, "mismatches": mismatches}
+
+@router.get("/funnel")
+def funnel(
+    from_: Optional[str] = Query(None, alias="from"),
+    to_: Optional[str] = Query(None, alias="to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    start = _parse_dt(from_) or datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = _parse_dt(to_) or datetime.now(timezone.utc)
+    q_base = db.query(RecoveryAttempt).join(Transaction).filter(
+        Transaction.org_id == current_user.org_id,
+        RecoveryAttempt.created_at >= start,
+        RecoveryAttempt.created_at <= end,
+    )
+    failed = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.subquery()).scalar() or 0
+    notified = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.filter(RecoveryAttempt.status.in_(["sent", "opened", "completed"])) .subquery()).scalar() or 0
+    clicked = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.filter(RecoveryAttempt.status.in_(["opened", "completed"])) .subquery()).scalar() or 0
+    paid = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.filter(RecoveryAttempt.status == "completed").subquery()).scalar() or 0
+    return {"failed": int(failed), "notified": int(notified), "clicked": int(clicked), "paid": int(paid)}

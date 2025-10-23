@@ -21,7 +21,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(128), nullable=True)
-    role = Column(String(32), nullable=False, default="user")  # admin, user, viewer
+    role = Column(String(32), nullable=False, default="operator")  # admin, analyst, operator
     is_active = Column(Boolean, default=True, nullable=False)
     org_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -45,6 +45,10 @@ class Transaction(Base):
     payment_link_url = Column(String(512), nullable=True)
     customer_email = Column(String(255), nullable=True)
     customer_phone = Column(String(32), nullable=True)
+
+    # Razorpay integration fields
+    razorpay_order_id = Column(String(128), nullable=True, index=True)
+    razorpay_payment_id = Column(String(128), nullable=True, index=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

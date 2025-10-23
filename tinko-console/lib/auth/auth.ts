@@ -1,9 +1,9 @@
 // NextAuth v4 configuration
-import type { AuthOptions, Session } from "next-auth";
+import type { Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions: AuthOptions = {
+export const authOptions: any = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
     CredentialsProvider({

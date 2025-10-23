@@ -33,6 +33,9 @@ export default function SignupPage() {
           if ((res as any).user?.email) {
             window.localStorage.setItem("user_email", (res as any).user.email);
           }
+          if ((res as any).user?.role) {
+            window.localStorage.setItem("user_role", (res as any).user.role);
+          }
         }
         router.push("/onboarding");
         return;

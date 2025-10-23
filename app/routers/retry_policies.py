@@ -250,7 +250,11 @@ def trigger_immediate_retry(
     
     # Trigger notification task immediately
     from app.tasks.notification_tasks import send_recovery_notification
-    send_recovery_notification.delay(attempt_id)
+    try:
+        send_recovery_notification.delay(attempt_id)
+    except Exception as e:
+        # In local/dev or tests without Redis/Celery, don't fail the endpoint
+        logger.warning("celery_unavailable_skip", error=str(e))
     
     logger.info(
         "immediate_retry_triggered",

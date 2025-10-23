@@ -14,8 +14,28 @@ def classify_event(code: Optional[str], message: Optional[str]) -> Dict[str, Any
     """
     category = rules.classify_failure(code, message)
     options = rules.next_retry_options(category)
+
+    # Map hardness per spec
+    # - insufficient_funds -> soft
+    # - issuer_declined -> hard
+    # - auth_timeout -> soft
+    # - 3ds_timeout -> soft (maps to auth_timeout in rules)
+    # - unknown -> soft by default
+    hardness = "soft"
+    if category in ("issuer_decline",):
+        hardness = "hard"
+
+    # Explicit code overrides for clarity
+    if code == "insufficient_funds":
+        hardness = "soft"
+    elif code == "issuer_declined":
+        hardness = "hard"
+    elif code in ("auth_timeout", "3ds_timeout"):
+        hardness = "soft"
+
     payload: Dict[str, Any] = {
         "category": category,
         **options,
+        "hardness": hardness,
     }
     return payload

@@ -1,11 +1,15 @@
 "use client";
 
 import en from "@/locales/en";
+import ta from "@/locales/ta";
+import hi from "@/locales/hi";
 
 type Dict = typeof en;
 
 const dictionaries: Record<string, Dict> = {
   en,
+  ta: ta as any,
+  hi: hi as any,
 };
 
 export function useI18n() {

@@ -1,0 +1,438 @@
+{
+  "audit_session": "20251019-115205",
+  "audit_date": "2025-10-19",
+  "totals": {
+    "estimated_days": "13-15",
+    "critical_path_days": 12
+  },
+  "phases": [
+    {
+      "name": "Phase 0 - Foundation",
+      "entry": "none",
+      "exit": "Auth works, Docker stack up, Sentry on",
+      "items": [
+        {
+          "id": "AUTH-001",
+          "title": "Backend Auth & RBAC (JWT, Users, Orgs, Roles)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 7,
+          "depends_on": [],
+          "repo_paths": [
+            "app/models.py",
+            "app/routers/auth.py",
+            "app/security.py",
+            "app/deps.py",
+            "migrations/"
+          ],
+          "acceptance": [
+            "Register/Login returns JWT with user_id, org_id, role",
+            "require_role([\"admin\"]) enforced",
+            "pytest auth suite green"
+          ],
+          "env_vars": ["JWT_SECRET", "JWT_ALGORITHM", "JWT_EXPIRY_MINUTES"]
+        },
+        {
+          "id": "INFRA-001",
+          "title": "Dockerize backend/frontend + docker-compose",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 4,
+          "depends_on": [],
+          "repo_paths": [
+            "Dockerfile",
+            "tinko-console/Dockerfile",
+            "docker-compose.yml",
+            ".env.example",
+            "tinko-console/.env.example"
+          ],
+          "acceptance": [
+            "docker-compose up exposes :8000 and :3000",
+            "DB migrations run automatically",
+            "Mailhog UI at :8025"
+          ],
+          "env_vars": ["DATABASE_URL", "REDIS_URL"]
+        },
+        {
+          "id": "OBS-001",
+          "title": "Observability (Sentry + structured logging)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 3,
+          "depends_on": [],
+          "repo_paths": [
+            "app/logging.py",
+            "app/main.py",
+            "tinko-console/lib/sentry.ts",
+            "package.json"
+          ],
+          "acceptance": [
+            "Backend + frontend errors appear in Sentry",
+            "Logs include request_id, user_id, org_id"
+          ],
+          "env_vars": ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN", "LOG_LEVEL"]
+        },
+        {
+          "id": "TASK-0.3",
+          "title": "Add Rate Limiting to Auth Endpoints",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": [],
+          "repo_paths": ["requirements.txt", "app/main.py", "app/routers/auth.py"],
+          "files_to_create": ["tests/test_rate_limiting.py"],
+          "acceptance_criteria": [
+            "Login limited to 5 requests/minute per IP",
+            "Register limited to 3 requests/minute per IP",
+            "429 status returned on rate limit exceeded",
+            "Redis stores rate limit state",
+            "Tests verify rate limiting behavior"
+          ],
+          "libraries": ["slowapi>=0.1.9"]
+        }
+      ]
+    },
+    {
+      "name": "Phase 1 - Core Automation",
+      "entry": "Phase 0 complete",
+      "exit": "Event->Link->Retry->Notification->Payment",
+      "items": [
+        {
+          "id": "RETRY-001",
+          "title": "Celery workers + Redis + notification channels",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 9,
+          "depends_on": [],
+          "repo_paths": [
+            "app/worker.py",
+            "app/tasks/retry_tasks.py",
+            "app/services/notifications/"
+          ],
+          "acceptance": [
+            "Task scheduling & retries (3x)",
+            "Email/SMS sent; NotificationLog persisted"
+          ],
+          "env_vars": [
+            "REDIS_URL",
+            "SMTP_HOST",
+            "SMTP_PORT",
+            "SMTP_USER",
+            "SMTP_PASS",
+            "TWILIO_ACCOUNT_SID",
+            "TWILIO_AUTH_TOKEN",
+            "TWILIO_FROM_PHONE"
+          ]
+        },
+        {
+          "id": "PSP-001",
+          "title": "Razorpay, PayU, Cashfree adapters + webhooks",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": [],
+          "repo_paths": ["app/services/payments/", "app/routers/webhooks_*.py"],
+          "acceptance": [
+            "Checkout URL returned for each PSP",
+            "Webhook signatures verified; events stored"
+          ],
+          "env_vars": [
+            "RAZORPAY_KEY_ID",
+            "RAZORPAY_KEY_SECRET",
+            "RAZORPAY_WEBHOOK_SECRET",
+            "PAYU_MERCHANT_ID",
+            "PAYU_MERCHANT_KEY",
+            "CASHFREE_APP_ID",
+            "CASHFREE_SECRET_KEY"
+          ]
+        },
+        {
+          "id": "RULES-001",
+          "title": "DB-driven rules engine + visual editor",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 8,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": [
+            "app/services/rules_engine.py",
+            "app/routers/rules.py",
+            "tinko-console/app/(console)/rules/"
+          ],
+          "acceptance": [
+            "Create rule (conditions/actions) with org_id",
+            "Recovery creation triggers rule execution & logs"
+          ],
+          "env_vars": []
+        },
+        {
+          "id": "TMPL-001",
+          "title": "Template management (CRUD + render)",
+          "owner": "TBD",
+          "status": "todo",
+          "estimate_days": 5,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": [
+            "app/routers/templates.py",
+            "app/services/template_renderer.py",
+            "tinko-console/app/(console)/templates/"
+          ],
+          "acceptance": [
+            "Create HTML/text templates with variables",
+            "Retry tasks render & send templates"
+          ],
+          "env_vars": []
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - Product Polish",
+      "entry": "Phase 1 complete",
+      "exit": "Real dashboard + E2E coverage",
+      "items": [
+        {
+          "id": "ANALYTICS-001",
+          "title": "Analytics endpoints + live charts",
+          "status": "todo",
+          "estimate_days": 7,
+          "depends_on": ["AUTH-001"],
+          "repo_paths": [
+            "app/routers/analytics.py",
+            "app/services/analytics.py",
+            "tinko-console/components/charts/"
+          ],
+          "acceptance": [
+            "Recovery rate, categories, revenue, channels",
+            "Dashboard renders live data <500ms"
+          ],
+          "env_vars": []
+        },
+        {
+          "id": "E2E-001",
+          "title": "Playwright E2E (auth, recovery, rules)",
+          "status": "todo",
+          "estimate_days": 5,
+          "depends_on": [],
+          "repo_paths": ["tinko-console/tests/e2e/", ".github/workflows/e2e.yml"],
+          "acceptance": ["E2E green on PRs vs staging"],
+          "env_vars": ["STAGING_BASE_URL", "TEST_USER_EMAIL", "TEST_USER_PASS"]
+        },
+        {
+          "id": "TASK-2.1",
+          "title": "Add Trend Analytics Endpoint",
+          "phase": 2,
+          "priority": "P2",
+          "labels": ["analytics", "backend", "dashboard"],
+          "estimate": "M",
+          "estimate_hours": 6,
+          "dependencies": [],
+          "status": "pending",
+          "files_to_modify": [
+            "app/routers/analytics.py",
+            "app/services/analytics.py",
+            "tinko-console/app/(console)/dashboard/page.tsx"
+          ],
+          "files_to_create": ["tests/test_analytics.py"],
+          "acceptance_criteria": [
+            "Endpoint returns correct daily aggregates",
+            "Data is sorted by date (oldest to newest)",
+            "Frontend line chart renders trend",
+            "Tests verify aggregation logic",
+            "Performance: query runs in <200ms for 90d period"
+          ],
+          "api_endpoints": ["GET /v1/analytics/trend"]
+        },
+        {
+          "id": "TASK-2.2",
+          "title": "Add CSV Export Functionality",
+          "phase": 2,
+          "priority": "P2",
+          "labels": ["analytics", "export", "ux"],
+          "estimate": "S",
+          "estimate_hours": 4,
+          "dependencies": [],
+          "status": "pending",
+          "files_to_modify": ["app/main.py", "tinko-console/app/(console)/dashboard/page.tsx"],
+          "files_to_create": ["app/routers/exports.py", "tinko-console/lib/utils.ts"],
+          "acceptance_criteria": [
+            "CSV downloads with correct headers and data",
+            "Large datasets (10k+ rows) stream without timeout",
+            "Filename includes date: transactions_2025-10-19.csv",
+            "Excel can open CSV without encoding issues (UTF-8 BOM)"
+          ],
+          "api_endpoints": [
+            "GET /v1/exports/transactions.csv",
+            "GET /v1/exports/recovery_attempts.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 - Production Readiness",
+      "entry": "Phase 2 complete",
+      "exit": "Prod deploy + multi-tenancy",
+      "items": [
+        {
+          "id": "DEPLOY-001",
+          "title": "Prod CI/CD (ECR/Cloud Run + Vercel)",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": ["INFRA-001"],
+          "acceptance": ["Push to main deploys backend & frontend"],
+          "env_vars": [
+            "DATABASE_URL",
+            "REDIS_URL",
+            "JWT_SECRET",
+            "STRIPE_SECRET_KEY",
+            "STRIPE_WEBHOOK_SECRET",
+            "SENTRY_DSN",
+            "NEXTAUTH_SECRET"
+          ]
+        },
+        {
+          "id": "PART-001",
+          "title": "Multi-tenancy (org_id + RLS semantics)",
+          "status": "todo",
+          "estimate_days": 6,
+          "depends_on": ["AUTH-001"],
+          "acceptance": ["All queries filtered by org_id; isolation tests pass"],
+          "env_vars": []
+        },
+        {
+          "id": "TASK-3.1",
+          "title": "Add Prometheus Metrics Endpoint",
+          "phase": 3,
+          "priority": "P2",
+          "labels": ["observability", "metrics", "prometheus"],
+          "estimate": "M",
+          "estimate_hours": 8,
+          "dependencies": [],
+          "status": "pending",
+          "files_to_modify": ["requirements.txt", "app/main.py", "docker-compose.yml"],
+          "files_to_create": ["grafana/dashboards/tinko-recovery.json"],
+          "acceptance_criteria": [
+            "/metrics endpoint returns Prometheus format",
+            "Grafana dashboard displays request metrics",
+            "Custom business metrics visible (recovery rate, payment volume)",
+            "Alerts configured for high error rate (>5%)"
+          ],
+          "libraries": ["prometheus-fastapi-instrumentator>=7.0.0"]
+        },
+        {
+          "id": "TASK-3.2",
+          "title": "Complete Kubernetes Manifests",
+          "phase": 3,
+          "priority": "P2",
+          "labels": ["infrastructure", "kubernetes", "devops"],
+          "estimate": "M",
+          "estimate_hours": 16,
+          "dependencies": [],
+          "status": "pending",
+          "files_to_modify": ["k8s/hpa.yml"],
+          "files_to_create": [
+            "k8s/deployment-backend.yml",
+            "k8s/deployment-frontend.yml",
+            "k8s/deployment-worker.yml",
+            "k8s/service-backend.yml",
+            "k8s/service-frontend.yml",
+            "k8s/ingress.yml",
+            "k8s/configmap.yml",
+            "k8s/secrets.yml.example",
+            "k8s/README.md"
+          ],
+          "acceptance_criteria": [
+            "kubectl apply -k k8s/ deploys all resources",
+            "Backend pods start and pass health checks",
+            "Frontend accessible at https://console.tinko.in",
+            "API accessible at https://api.tinko.in",
+            "HPA scales pods based on CPU load",
+            "TLS certificates auto-renew",
+            "Secrets not committed to git"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phase 4 - Quality & Testing",
+      "items": [
+        {
+          "id": "TASK-4.1",
+          "title": "Add Frontend Unit Tests",
+          "phase": 4,
+          "priority": "P1",
+          "labels": ["testing", "frontend", "vitest"],
+          "estimate": "L",
+          "estimate_hours": 24,
+          "dependencies": [],
+          "status": "pending",
+          "files_to_modify": [
+            ".github/workflows/ci.yml",
+            "tinko-console/package.json"
+          ],
+          "files_to_create": [
+            "tinko-console/vitest.config.ts",
+            "tinko-console/test-setup.ts",
+            "tinko-console/app/(console)/dashboard/__tests__/page.test.tsx",
+            "tinko-console/app/(console)/rules/__tests__/page.test.tsx",
+            "tinko-console/app/pay/retry/__tests__/[token].test.tsx",
+            "tinko-console/lib/__tests__/api.test.ts"
+          ],
+          "acceptance_criteria": [
+            "80%+ code coverage for components",
+            "All critical user flows tested",
+            "Tests run in CI",
+            "Tests complete in <60 seconds",
+            "Mocked API calls (no real backend needed)"
+          ],
+          "libraries": [
+            "vitest",
+            "@testing-library/react",
+            "@testing-library/jest-dom",
+            "jsdom"
+          ]
+        },
+        {
+          "id": "TASK-4.2",
+          "title": "Add E2E Tests with Playwright",
+          "phase": 4,
+          "priority": "P1",
+          "labels": ["testing", "e2e", "playwright"],
+          "estimate": "M",
+          "estimate_hours": 16,
+          "dependencies": ["TASK-4.1"],
+          "status": "pending",
+          "files_to_modify": [
+            ".github/workflows/ci.yml",
+            "tinko-console/package.json"
+          ],
+          "files_to_create": [
+            "tinko-console/tests/e2e/auth.spec.ts",
+            "tinko-console/tests/e2e/dashboard.spec.ts",
+            "tinko-console/tests/e2e/payment.spec.ts",
+            "tinko-console/tests/e2e/rules.spec.ts"
+          ],
+          "acceptance_criteria": [
+            "10+ E2E scenarios covered",
+            "Tests pass on Chromium, Firefox, WebKit",
+            "CI runs E2E tests on every PR",
+            "Test report generated (HTML + screenshots on failure)",
+            "Flaky tests debugged and stabilized"
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_estimate_hours": 115.08,
+    "total_estimate_days": 14.39,
+    "p0_tasks": 1,
+    "p1_tasks": 6,
+    "p2_tasks": 4,
+    "phases": {
+      "0": { "name": "Foundation & Quick Wins", "tasks": 3, "estimate_days": 1.13 },
+      "1": { "name": "Payments Core Enhancements", "tasks": 3, "estimate_days": 4 },
+      "2": { "name": "Analytics & Dashboard", "tasks": 2, "estimate_days": 1.25 },
+      "3": { "name": "Infrastructure & Observability", "tasks": 2, "estimate_days": 3 },
+      "4": { "name": "Quality & Testing", "tasks": 2, "estimate_days": 5 }
+    }
+  }
+}

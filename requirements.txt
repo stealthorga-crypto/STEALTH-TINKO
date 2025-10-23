@@ -23,6 +23,7 @@ stripe==11.1.1
 
 # Optional PSPs (install in environments that use them)
 # twilio==9.4.0  # For SMS notifications
+# razorpay==1.4.2  # Optional: if you prefer official SDK over HTTP REST via httpx
 
 # Testing
 pytest==8.3.4

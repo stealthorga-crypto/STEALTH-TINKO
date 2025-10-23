@@ -44,7 +44,8 @@ class StripeService:
             Dict containing session_id, payment_intent_id, and checkout_url
         """
         try:
-            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            # Use unified PUBLIC_BASE_URL for public redirects (fallback to legacy BASE_URL then dev default)
+            base_url = os.getenv("PUBLIC_BASE_URL") or os.getenv("BASE_URL") or "http://localhost:3000"
             success_url = success_url or f"{base_url}/pay/success?session_id={{CHECKOUT_SESSION_ID}}"
             cancel_url = cancel_url or f"{base_url}/pay/cancel"
             
@@ -151,7 +152,7 @@ class StripeService:
                 after_completion={
                     "type": "redirect",
                     "redirect": {
-                        "url": os.getenv("BASE_URL", "http://localhost:3000") + "/pay/success"
+                        "url": (os.getenv("PUBLIC_BASE_URL") or os.getenv("BASE_URL") or "http://localhost:3000") + "/pay/success"
                     }
                 }
             )

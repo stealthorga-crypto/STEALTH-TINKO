@@ -70,6 +70,18 @@ def require_roles(allowed_roles: List[str]):
     return role_checker
 
 
+def require_role(role: str):
+    """
+    Convenience wrapper to require a single role.
+
+    Usage:
+        @app.post("/admin-only")
+        def do_admin(user: User = Depends(require_role("admin"))):
+            ...
+    """
+    return require_roles([role])
+
+
 def get_current_org(current_user: User = Depends(get_current_user)) -> Organization:
     """
     Dependency to get the current user's organization.

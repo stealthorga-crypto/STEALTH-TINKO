@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
 import { api } from "@/lib/api";
 
-export default function SigninPage() {
+function SigninContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +33,9 @@ export default function SigninPage() {
           if ((res as any).user?.email) {
             window.localStorage.setItem("user_email", (res as any).user.email);
           }
+          if ((res as any).user?.role) {
+            window.localStorage.setItem("user_role", (res as any).user.role);
+          }
         }
         const cb = params.get("callbackUrl") || "/dashboard";
         router.push(cb);
@@ -56,6 +59,24 @@ export default function SigninPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                const base = process.env.NEXT_PUBLIC_API_URL || "";
+                const url = base ? `${base}/v1/auth/oauth/google/start` : "/v1/auth/oauth/google/start";
+                window.location.href = url;
+              }}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50"
+            >
+              Continue with Google
+            </button>
+            <div className="flex items-center my-4">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="px-2 text-slate-500 text-sm">or</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
@@ -112,5 +133,13 @@ export default function SigninPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SigninPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
+      <SigninContent />
+    </Suspense>
   );
 }

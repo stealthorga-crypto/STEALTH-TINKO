@@ -214,8 +214,8 @@ def send_recovery_notification(attempt_id: int):
             logger.warning("notification_failed", reason="attempt_not_found", attempt_id=attempt_id)
             return {"status": "not_found", "attempt_id": attempt_id}
         
-        # Build recovery link
-        base_url = os.getenv('BASE_URL', 'http://localhost:3000')
+        # Build recovery link using unified PUBLIC_BASE_URL (fallback to BASE_URL, then dev default)
+        base_url = os.getenv('PUBLIC_BASE_URL') or os.getenv('BASE_URL') or 'http://localhost:3000'
         recovery_link = f"{base_url}/pay/{attempt.token}"
         
         # PSP-001: Get payment link from transaction if available
@@ -283,6 +283,20 @@ def send_recovery_notification(attempt_id: int):
             
             log = send_email_notification(recipient, subject, body, attempt_id)
             attempt.status = 'sent'
+            try:
+                from app.analytics.sink import emit
+                emit(
+                    "recovery_link_issued",
+                    {
+                        "attempt_id": attempt.id,
+                        "transaction_ref": attempt.transaction_ref,
+                        "org_id": attempt.transaction.transaction_ref if attempt.transaction else None,
+                        "channel": attempt.channel,
+                        "recipient": recipient,
+                    },
+                )
+            except Exception:
+                pass
             
         elif attempt.channel == 'sms':
             # Get recipient phone from transaction or use placeholder

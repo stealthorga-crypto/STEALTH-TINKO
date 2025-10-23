@@ -14,22 +14,45 @@ export default function CheckoutRedirectPage({ params }: { params: { ref: string
     const go = async () => {
       try {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const res = await api.post<{ ok: boolean; data: { url: string } }>(
-          "/v1/payments/stripe/checkout",
-          {
-            transaction_ref: ref,
-            success_url: `${origin}/pay/success`,
-            cancel_url: `${origin}/pay/cancel`,
-          }
+        const order = await api.post<{ order_id: string; key_id: string; amount: number; currency: string }>(
+          "/v1/payments/razorpay/orders-public",
+          { ref }
         );
-        if (res?.data?.url) {
-          window.location.href = res.data.url;
-          return;
-        }
-        setError("No checkout URL returned");
+        const { order_id, key_id, amount, currency } = order;
+        // Load Razorpay script
+        await new Promise<void>((resolve, reject) => {
+          const id = "rzp-checkout-js";
+          if (document.getElementById(id)) return resolve();
+          const s = document.createElement("script");
+          s.id = id;
+          s.src = "https://checkout.razorpay.com/v1/checkout.js";
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("Failed to load Razorpay"));
+          document.body.appendChild(s);
+        });
+        const opts: any = {
+          key: key_id,
+          order_id,
+          amount,
+          currency,
+          name: "Tinko Recovery",
+          description: `Payment Recovery ${ref}`,
+          handler: function () {
+            window.location.href = `${origin}/pay/success`;
+          },
+          modal: {
+            ondismiss: function () {
+              window.location.href = `${origin}/pay/cancel`;
+            },
+          },
+        };
+        // @ts-ignore
+        const rzp = new (window as any).Razorpay(opts);
+        rzp.open();
+        return;
       } catch (e) {
         console.error(e);
-        setError("Failed to create checkout session");
+        setError("Failed to start Razorpay Checkout");
       } finally {
         setLoading(false);
       }
@@ -47,7 +70,7 @@ export default function CheckoutRedirectPage({ params }: { params: { ref: string
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold mb-2">Unable to redirect to Checkout</h1>
+  <h1 className="text-xl font-semibold mb-2">Unable to launch Checkout</h1>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       <button
         className="px-4 py-2 bg-blue-600 text-white rounded"

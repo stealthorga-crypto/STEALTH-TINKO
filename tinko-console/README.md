@@ -114,8 +114,9 @@ NEXTAUTH_SECRET=your-secret-key-here-generate-with-openssl
 # Backend API (optional for frontend development)
 NEXT_PUBLIC_API_URL=http://localhost:8000
 Notes:
-- The payer retry page at `/pay/retry/[token]` will call `${NEXT_PUBLIC_API_URL}/v1/recoveries/by_token/:token`.
-- In local dev, start the FastAPI server with `uvicorn app.main:app --reload` so the new endpoints are available.
+- Token-based payer page `/pay/retry/[token]` resolves ref via `${NEXT_PUBLIC_API_URL}/v1/recoveries/by_token/:token`.
+- Checkout opens Razorpay via `/pay/retry/[token]/checkout` → server `POST /v1/payments/razorpay/orders-public`.
+- In local dev, start the FastAPI server with `uvicorn app.main:app --reload` so the endpoints are available.
 
 # Environment
 NODE_ENV=development
@@ -344,9 +345,13 @@ tinko-console/
 
 ## 🔐 Authentication
 
-Uses NextAuth v5 with credentials provider. For development, use any email/password.
+Uses NextAuth v5 with credentials provider. For development, use any email/password. Google SSO also supported if configured on backend.
 
 **⚠️ Production**: Replace placeholder auth in `lib/auth/auth.ts` before deploying.
+
+## 🌐 Internationalization (i18n)
+
+Lightweight dictionaries for `en`, `ta`, and `hi` live in `locales/`. Use the header language switcher; selection is persisted to `localStorage`.
 
 ## 🌐 Deployment to Vercel
 

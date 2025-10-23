@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 export default function OnboardingPage() {
-  // Step 1: Server-side Stripe ping (no secrets in browser)
+  // Step 1: Server-side Razorpay ping (no secrets in browser)
   // Step 2: Save minimal retry policy via /v1/retry/policies
   const [step, setStep] = useState(1);
   const [testing, setTesting] = useState(false);
@@ -24,15 +24,15 @@ export default function OnboardingPage() {
     setChannels(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   };
 
-  const testStripe = async () => {
+  const testRazorpay = async () => {
     setTesting(true);
     setTestResult(null);
     try {
-      await api.get("/v1/payments/stripe/ping");
-      setTestResult("Stripe connection OK");
+      await api.get("/v1/payments/razorpay/ping");
+      setTestResult("Razorpay connection OK");
       setStep(2);
     } catch (e) {
-      setTestResult("Stripe not configured on server. Set STRIPE_SECRET_KEY and try again.");
+      setTestResult("Razorpay not configured. Set RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET and try again.");
     } finally {
       setTesting(false);
     }
@@ -65,12 +65,12 @@ export default function OnboardingPage() {
 
       {step === 1 && (
         <div className="bg-white border rounded p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Step 1: Connect Stripe</h2>
+          <h2 className="text-lg font-semibold">Step 1: Connect Razorpay</h2>
           <p className="text-sm text-slate-700">
-            Server-side only: set STRIPE_SECRET_KEY in your API environment. This wizard does not store secrets in the browser.
+            Server-side only: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your API environment. This wizard does not store secrets in the browser.
           </p>
           <button
-            onClick={testStripe}
+            onClick={testRazorpay}
             disabled={testing}
             className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
           >

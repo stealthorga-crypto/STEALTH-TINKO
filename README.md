@@ -53,9 +53,12 @@ Stealth-Reecovery/
 2. **Backend Setup**
 
    ```bash
-   cd Stealth-Reecovery
+   # From the repository root (preferred)
    pip install -r requirements.txt
-   python -m uvicorn app.main:app --reload
+   python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+   # Tip: If port 8000 is busy (another copy may be running), use 8001
+   # python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
    ```
 
 3. **Frontend Setup**
@@ -63,6 +66,9 @@ Stealth-Reecovery/
    ```bash
    cd tinko-console
    npm install
+   # Ensure the console points to the API base URL
+   # (create .env.local and set NEXT_PUBLIC_API_URL if needed)
+   # NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
    npm run dev
    ```
 
@@ -70,6 +76,42 @@ Stealth-Reecovery/
    - [Deployment Guide](./CONSOLIDATED_DOCUMENTATION.md#deployment--operations)
    - [Docker Guide](./CONSOLIDATED_DOCUMENTATION.md#docker-guide)
    - [Testing Guide](./CONSOLIDATED_DOCUMENTATION.md#testing--quality)
+
+### Razorpay Payer Flow (dev)
+
+- Backend creates orders at `POST /v1/payments/razorpay/orders-public` with `{ ref }` and serves a webhook at `POST /v1/payments/razorpay/webhooks`.
+- Frontend payer routes:
+  - `/pay/[ref]/checkout` (direct by transaction ref)
+  - `/pay/retry/[token]/checkout` (token-based flow resolving ref)
+  - `/pay/retry/[token]` (optional schedule picker → checkout)
+- Set env:
+  - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server)
+  - `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000` (frontend)
+
+### Partitions & Maintenance
+
+- Ensure partitions (Postgres only, no-op on SQLite): `POST /v1/maintenance/partition/ensure_current` (admin only)
+- Migration `005_partitions.py` attempts to create and attach monthly partitions for `transactions_*`.
+
+### Analytics Sink (optional)
+
+Toggle sinks with flags:
+
+```
+FEATURE_ANALYTICS_SINK=on
+FEATURE_CLICKHOUSE_SINK=off
+FEATURE_S3_SINK=off
+```
+
+Supported envs: `CLICKHOUSE_URL`, `CLICKHOUSE_DATABASE`, `CLICKHOUSE_TABLE`, `S3_BUCKET_NAME`, `S3_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.
+
+### i18n
+
+Minimal dictionaries exist for English, Tamil, and Hindi. Use the language switcher in the console header.
+
+### Dev Note: Duplicate app folder
+
+This repo contains a historical nested copy under `Stealth-Reecovery/`. Prefer running the API from the repository root (`app/…`). Some newer endpoints (Razorpay, schedule, maintenance) exist only in the root app. If you must use the nested copy, features may be missing.
 
 ### Stripe Webhook (development)
 

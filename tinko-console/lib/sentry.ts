@@ -4,12 +4,18 @@
  * Set NEXT_PUBLIC_SENTRY_DSN in environment variables to enable.
  */
 
-import * as Sentry from '@sentry/nextjs';
+// Optional Sentry: don't fail build if package isn't installed
+let Sentry: any = null;
+try {
+  Sentry = require('@sentry/nextjs');
+} catch {
+  Sentry = null;
+}
 
 export function initSentry() {
   const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
-  if (SENTRY_DSN) {
+  if (SENTRY_DSN && Sentry?.init) {
     Sentry.init({
       dsn: SENTRY_DSN,
       environment: process.env.NEXT_PUBLIC_ENVIRONMENT || 'development',
@@ -23,7 +29,7 @@ export function initSentry() {
       // Only capture errors in production
       enabled: process.env.NODE_ENV === 'production',
       
-      beforeSend(event, hint) {
+  beforeSend(event: any, hint: any) {
         // Filter out specific errors if needed
         if (event.exception) {
           const error = hint.originalException;
@@ -44,7 +50,7 @@ export function initSentry() {
  * Set user context for Sentry error tracking.
  */
 export function setSentryUser(user: { id: string; email: string; org_id?: string }) {
-  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN && Sentry?.setUser) {
     Sentry.setUser({
       id: user.id,
       email: user.email,
@@ -57,7 +63,7 @@ export function setSentryUser(user: { id: string; email: string; org_id?: string
  * Clear user context (on logout).
  */
 export function clearSentryUser() {
-  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN && Sentry?.setUser) {
     Sentry.setUser(null);
   }
 }
@@ -66,7 +72,7 @@ export function clearSentryUser() {
  * Manually capture an exception.
  */
 export function captureException(error: Error, context?: Record<string, any>) {
-  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN && Sentry?.captureException) {
     Sentry.captureException(error, {
       extra: context,
     });
@@ -77,7 +83,7 @@ export function captureException(error: Error, context?: Record<string, any>) {
  * Manually capture a message.
  */
 export function captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
-  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN && Sentry?.captureMessage) {
     Sentry.captureMessage(message, level);
   }
 }

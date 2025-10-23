@@ -36,7 +36,7 @@ logger = get_logger(__name__)
 from .db import Base, engine
 
 # 4) Routers (import-guarded so app still boots even if one has an error)
-events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = payments_router = stripe_webhook_router = auth_router = retry_router = stripe_payments_router = maintenance_router = None
+events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = payments_router = stripe_webhook_router = auth_router = retry_router = stripe_payments_router = maintenance_router = razorpay_router = analytics_router = recon_router = schedule_router = None
 
 try:
     from .routers.auth import router as auth_router
@@ -96,11 +96,27 @@ except Exception:
     pass
 
 try:
-    from .routers.maintenance import router as maintenance_router
+    from .routers.recon import router as recon_router
 except Exception:
     pass
 
-app = FastAPI(title="Tinko API (dev)", version="0.1.0")
+try:
+    from .routers.payments_razorpay import router as razorpay_router
+except Exception:
+    pass
+
+from app.routers import maintenance as maintenance_router_module
+try:
+    from .routers.schedule import router as schedule_router
+except Exception:
+    pass
+
+app = FastAPI(
+    title="Tinko API",
+    version="0.1.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+)
 
 # Add request tracing middleware
 from .middleware import request_id_middleware
@@ -154,7 +170,26 @@ if payments_router:
     app.include_router(payments_router)
 if stripe_webhook_router:
     app.include_router(stripe_webhook_router)
-if analytics_router:
-    app.include_router(analytics_router)
-if maintenance_router:
-    app.include_router(maintenance_router)
+if razorpay_router:
+    app.include_router(razorpay_router)
+if recon_router:
+    app.include_router(recon_router)
+import traceback
+
+def _mount(router_mod_path: str, attr: str = "router"):
+    try:
+        mod = __import__(router_mod_path, fromlist=[attr])
+        router = getattr(mod, attr)
+        app.include_router(router)
+        print(f"✅ Mounted {router_mod_path}.{attr}")
+    except Exception as e:
+        print(f"❌ Failed to mount {router_mod_path}: {e}")
+        traceback.print_exc()
+
+# IMPORTANT: use absolute paths from root app
+_mount("app.routers.schedule")
+_mount("app.routers.analytics")
+
+# Maintenance router (explicit include, fail loudly if import breaks)
+app.include_router(maintenance_router_module.router)
+logger.info("mounted_maintenance_router")
