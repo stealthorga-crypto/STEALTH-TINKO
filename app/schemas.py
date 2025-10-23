@@ -32,3 +32,11 @@ class RecoveryLinkOut(BaseModel):
     token: str
     url: str
     expires_at: str
+
+
+class NextRetryAtPatch(BaseModel):
+    """Payload to update next_retry_at for a recovery attempt.
+
+    Accepts an RFC3339/ISO8601 UTC timestamp.
+    """
+    next_retry_at: str = Field(..., description="ISO8601 UTC timestamp when the next retry should occur")
