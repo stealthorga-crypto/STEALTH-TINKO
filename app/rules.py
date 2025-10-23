@@ -9,6 +9,11 @@ CODES = {
     "3ds_timeout": "auth_timeout",
     "network_error": "network",
     "upi_pending": "upi_pending",
+    # Razorpay-specific codes
+    "RZP001_INSUFFICIENT_FUNDS": "funds",
+    "RZP_NETWORK_ISSUE": "network",
+    "RZP_UPI_INVALID_VPA": "issuer_decline",
+    "RZP_CARD_BLOCKED": "issuer_decline",
 }
 
 def classify_failure(code: str | None, message: str | None) -> str:
