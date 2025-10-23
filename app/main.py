@@ -189,6 +189,7 @@ def _mount(router_mod_path: str, attr: str = "router"):
 # IMPORTANT: use absolute paths from root app
 _mount("app.routers.schedule")
 _mount("app.routers.analytics")
+_mount("app.routers.retry")
 
 # Maintenance router (explicit include, fail loudly if import breaks)
 app.include_router(maintenance_router_module.router)
