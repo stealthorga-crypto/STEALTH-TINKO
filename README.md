@@ -55,10 +55,9 @@ Stealth-Reecovery/
    ```bash
    # From the repository root (preferred)
    pip install -r requirements.txt
-   python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+   python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 
-   # Tip: If port 8000 is busy (another copy may be running), use 8001
-   # python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+   # If port 8010 is busy, pick any free port and set NEXT_PUBLIC_API_URL accordingly
    ```
 
 3. **Frontend Setup**
@@ -68,7 +67,7 @@ Stealth-Reecovery/
    npm install
    # Ensure the console points to the API base URL
    # (create .env.local and set NEXT_PUBLIC_API_URL if needed)
-   # NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+   # NEXT_PUBLIC_API_URL=http://127.0.0.1:8010
    npm run dev
    ```
 
@@ -84,9 +83,29 @@ Stealth-Reecovery/
   - `/pay/[ref]/checkout` (direct by transaction ref)
   - `/pay/retry/[token]/checkout` (token-based flow resolving ref)
   - `/pay/retry/[token]` (optional schedule picker → checkout)
-- Set env:
-  - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server)
-  - `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000` (frontend)
+- Env:
+   - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server)
+   - `NEXT_PUBLIC_API_URL=http://127.0.0.1:8010` (frontend)
+
+#### cURL snippets
+
+```bash
+# Persist a selected schedule (use token as Bearer)
+curl -X PATCH "$NEXT_PUBLIC_API_URL/v1/recoveries/123/next_retry_at" \
+   -H "Authorization: Bearer $TOKEN_FROM_LINK" \
+   -H 'Content-Type: application/json' \
+   -d '{"next_retry_at":"2025-10-24T10:00:00Z"}'
+
+# Trigger due retries using in-process fallback (admin JWT)
+curl -X POST "$NEXT_PUBLIC_API_URL/v1/retry/trigger-due" \
+   -H "Authorization: Bearer $ADMIN_JWT" 
+
+# Razorpay webhook (replace BODY and signature accordingly)
+curl -X POST "$NEXT_PUBLIC_API_URL/v1/payments/razorpay/webhooks" \
+   -H "X-Razorpay-Signature: $SIG_HEX" \
+   -H 'Content-Type: application/json' \
+   -d @payload.json
+```
 
 ### Partitions & Maintenance
 
@@ -111,7 +130,7 @@ Minimal dictionaries exist for English, Tamil, and Hindi. Use the language switc
 
 ### Dev Note: Duplicate app folder
 
-This repo contains a historical nested copy under `Stealth-Reecovery/`. Prefer running the API from the repository root (`app/…`). Some newer endpoints (Razorpay, schedule, maintenance) exist only in the root app. If you must use the nested copy, features may be missing.
+This repo contains a historical nested copy under `Stealth-Reecovery/`. Always run from the repository root (`app/…`). Newer endpoints (Razorpay, schedule persist, retry fallback, maintenance) exist only in the root app.
 
 ### Stripe Webhook (development)
 
