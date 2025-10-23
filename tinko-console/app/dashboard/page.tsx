@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { api, ApiError } from "@/lib/api";
 
 type Rev = { currency: string; amount_cents: number };
 type Rate = { rate: number };
 type Attempts = { by_channel: Record<string, number>; by_status: Record<string, number> };
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8001";
 
 export default function Dashboard() {
   const [rev, setRev] = useState<Rev | null>(null);
@@ -19,22 +18,24 @@ export default function Dashboard() {
     async function poll() {
       try {
         const [r1, r2, r3] = await Promise.all([
-          fetch(`${API}/v1/analytics/revenue_recovered`, { cache: "no-store" }),
-          fetch(`${API}/v1/analytics/recovery_rate`, { cache: "no-store" }),
-          fetch(`${API}/v1/analytics/attempts_summary`, { cache: "no-store" }),
+          api.get<Rev>("/v1/analytics/revenue_recovered"),
+          api.get<Rate>("/v1/analytics/recovery_rate"),
+          api.get<Attempts>("/v1/analytics/attempts_summary"),
         ]);
         if (!stop) {
-          if (!r1.ok || !r2.ok || !r3.ok) {
-            setErr(`Fetch error: ${r1.status}/${r2.status}/${r3.status}`);
-            return;
-          }
-          setRev(await r1.json());
-          setRate(await r2.json());
-          setAtt(await r3.json());
+          setRev(r1);
+          setRate(r2);
+          setAtt(r3);
           setErr("");
         }
       } catch (e: any) {
-        if (!stop) setErr(e?.message ?? "Unknown error");
+        if (!stop) {
+          if (e instanceof ApiError) {
+            setErr(`${e.message} (${e.status})`);
+          } else {
+            setErr(e?.message ?? "Unknown error");
+          }
+        }
       } finally {
         if (!stop) setTimeout(poll, 3000);
       }
