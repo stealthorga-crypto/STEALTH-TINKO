@@ -9,7 +9,7 @@ from typing import Optional
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -122,21 +122,24 @@ async def create_order_public(body: CreateOrderIn, db: Session = Depends(get_db)
 
 
 @router.post("/webhooks", include_in_schema=True)
-async def razorpay_webhook(request, db: Session = Depends(get_db)):
+async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
     # FastAPI Request for body/headers
-    from fastapi import Request as FastAPIRequest
-    if not isinstance(request, FastAPIRequest):
-        # When httpx.Request is passed by mistake, adapt to FastAPI request
-        raise HTTPException(status_code=400, detail="Invalid request type")
     payload = await request.body()
     signature = request.headers.get("X-Razorpay-Signature")
     if not signature:
         raise HTTPException(status_code=400, detail="Missing signature")
-    try:
-        adapter = RazorpayAdapter()
-        event = adapter.validate_webhook(payload, signature)
-    except Exception:
+    # Validate signature without requiring API keys
+    import hashlib, hmac, json
+    secret = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(status_code=503, detail="Webhook secret not configured")
+    digest = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(digest, signature):
         raise HTTPException(status_code=400, detail="Invalid signature")
+    try:
+        event = json.loads(payload.decode())
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
 
     # Process event types: payment.captured / order.paid (idempotent by PspEvent)
     etype = event.get("event") or event.get("event_type")
