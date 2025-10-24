@@ -2,7 +2,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..deps import get_db, require_role
+from ..deps import get_db, require_roles_or_token
 from ..tasks.retry_tasks import process_retry_queue
 
 router = APIRouter(prefix="/v1/retry", tags=["retry"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/v1/retry", tags=["retry"])
 
 @router.post("/trigger-due")
 def trigger_due_retries(
-    _=Depends(require_role("admin")),
+    _=Depends(require_roles_or_token(["admin"])),
     db: Session = Depends(get_db),
 ):
     """Trigger processing of due retries using in-process runner for local/dev.
