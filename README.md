@@ -84,8 +84,8 @@ Stealth-Reecovery/
   - `/pay/retry/[token]/checkout` (token-based flow resolving ref)
   - `/pay/retry/[token]` (optional schedule picker → checkout)
 - Env:
-   - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server)
-   - `NEXT_PUBLIC_API_URL=http://127.0.0.1:8010` (frontend)
+  - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (server)
+  - `NEXT_PUBLIC_API_URL=http://127.0.0.1:8010` (frontend)
 
 #### cURL snippets
 
@@ -98,7 +98,7 @@ curl -X PATCH "$NEXT_PUBLIC_API_URL/v1/recoveries/123/next_retry_at" \
 
 # Trigger due retries using in-process fallback (admin JWT)
 curl -X POST "$NEXT_PUBLIC_API_URL/v1/retry/trigger-due" \
-   -H "Authorization: Bearer $ADMIN_JWT" 
+   -H "Authorization: Bearer $ADMIN_JWT"
 
 # Razorpay webhook (replace BODY and signature accordingly)
 curl -X POST "$NEXT_PUBLIC_API_URL/v1/payments/razorpay/webhooks" \

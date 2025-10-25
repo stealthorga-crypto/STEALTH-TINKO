@@ -17,7 +17,7 @@ import json
 import time
 from datetime import datetime, timedelta
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("API_URL", "http://localhost:8010")
 FRONTEND_URL = "http://localhost:3000"
 
 def print_section(title):
@@ -220,7 +220,7 @@ def print_summary():
     print_section("✨ Smoke Test Complete!")
     
     print("📊 Service Status:")
-    print(f"   ✅ Backend API:    http://localhost:8000/docs")
+    print(f"   ✅ Backend API:    {BASE_URL}/docs")
     print(f"   ✅ Frontend:       http://localhost:3000")
     print(f"   ✅ Database:       PostgreSQL on port 5432")
     print(f"   ✅ Redis:          Port 6379")

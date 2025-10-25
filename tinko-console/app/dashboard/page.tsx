@@ -37,7 +37,7 @@ export default function Dashboard() {
           }
         }
       } finally {
-        if (!stop) setTimeout(poll, 3000);
+        if (!stop) setTimeout(poll, 15000);
       }
     }
     poll();

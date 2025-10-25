@@ -1,60 +1,54 @@
-#!/bin/bash
-# Start script for Tinko Recovery Platform - Backend + Frontend
+#!/usr/bin/env bash
+# Cross-platform start script for Tinko Recovery Platform (Git Bash, WSL, Linux, macOS)
+set -euo pipefail
 
 echo "🚀 Starting Tinko Recovery Platform..."
-echo ""
 
-# Navigate to project root
-cd "$(dirname "$0")"
+# Project root
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT_DIR"
 
-# Check if Docker is running for Redis (optional)
-if docker ps &>/dev/null; then
-    echo "✅ Docker is running"
-    # Start Redis if not running
-    if ! docker ps | grep -q tinko-redis; then
-        echo "Starting Redis container..."
-        docker run -d --name tinko-redis -p 6379:6379 redis:alpine 2>/dev/null || docker start tinko-redis
+# Config
+PORT_BACKEND="${PORT_BACKEND:-8010}"
+API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:${PORT_BACKEND}}"
+
+# Optional: Start Redis via Docker if available
+if command -v docker >/dev/null 2>&1 && docker ps >/dev/null 2>&1; then
+    if ! docker ps --format '{{.Names}}' | grep -q '^tinko-redis$'; then
+        echo "🐳 Starting Redis container..."
+        docker run -d --name tinko-redis -p 6379:6379 redis:alpine >/dev/null 2>&1 || docker start tinko-redis >/dev/null
+    else
+        echo "✅ Redis already running"
     fi
 else
-    echo "⚠️  Docker not running - Celery workers will not be available"
+    echo "ℹ️  Docker not available or not running — skipping Redis (Celery optional in dev)"
 fi
 
-echo ""
-echo "Starting Backend (FastAPI)..."
-cd Stealth-Reecovery
-/c/Python313/python -m uvicorn app.main:app --reload --port 8000 &
+echo "\n▶️  Backend (FastAPI) on :$PORT_BACKEND"
+(
+    cd "$ROOT_DIR"
+    /c/Python313/python -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT_BACKEND" --reload
+) &
 BACKEND_PID=$!
-echo "✅ Backend started (PID: $BACKEND_PID) - http://127.0.0.1:8000"
 
-echo ""
-echo "Waiting for backend to initialize..."
-sleep 5
+# Wait for backend warmup
+sleep 3 || true
 
-echo ""
-echo "Starting Frontend (Next.js)..."
-cd ../tinko-console
-
-# Check if node_modules exists
-if [ ! -d "node_modules" ]; then
-    echo "Installing frontend dependencies (this may take a few minutes)..."
-    npm install
-fi
-
-npm run dev &
+echo "\n▶️  Frontend (Next.js) on :3000"
+(
+    cd "$ROOT_DIR/tinko-console"
+    [ -d node_modules ] || npm install
+    # Inline env for Git Bash/Linux; Next will read NEXT_PUBLIC_API_URL
+    NEXT_PUBLIC_API_URL="$API_URL" npm run dev
+) &
 FRONTEND_PID=$!
-echo "✅ Frontend started (PID: $FRONTEND_PID) - http://localhost:3000"
 
-echo ""
+echo "\n=========================================="
+echo "✅ Tinko Recovery Platform is starting"
 echo "=========================================="
-echo "✅ Tinko Recovery Platform is running!"
-echo "=========================================="
-echo ""
-echo "🌐 Backend API:  http://127.0.0.1:8000/docs"
-echo "🎨 Frontend UI:  http://localhost:3000"
-echo "💚 Health Check: http://127.0.0.1:8000/healthz"
-echo ""
-echo "Press Ctrl+C to stop all services"
-echo ""
+echo "🌐 Backend:  $API_URL/docs"
+echo "🎨 Frontend: http://localhost:3000"
+echo "💚 Health:   $API_URL/healthz"
+echo "(Press Ctrl+C to stop)"
 
-# Wait for both processes
 wait $BACKEND_PID $FRONTEND_PID

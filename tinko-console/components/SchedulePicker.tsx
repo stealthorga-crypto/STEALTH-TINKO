@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
-type Slot = { ts: string; score: number };
+type Slot = { start: string; end: string; score: number };
 
 export function SchedulePicker({ refId, onSelect }: { refId: string; onSelect: (ts: string) => void }) {
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -36,12 +36,12 @@ export function SchedulePicker({ refId, onSelect }: { refId: string; onSelect: (
     <div className="grid grid-cols-2 gap-2">
       {slots.slice(0, 8).map((s) => (
         <button
-          key={s.ts}
-          onClick={() => onSelect(s.ts)}
+          key={s.start}
+          onClick={() => onSelect(s.start)}
           className="border rounded-md p-2 text-left hover:bg-slate-50"
         >
           <div className="text-sm font-medium text-slate-900">
-            {new Date(s.ts).toLocaleString()}
+            {new Date(s.start).toLocaleString()} – {new Date(s.end).toLocaleTimeString()}
           </div>
           <div className="text-xs text-slate-500">Score: {s.score}</div>
         </button>

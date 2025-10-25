@@ -99,6 +99,17 @@ const request = async <T>(path: string, method: ApiMethod, options: RequestOptio
           }
         }
 
+        // Handle 401: clear token and redirect to signin (client-side only)
+        if (response.status === 401) {
+          try {
+            if (typeof window !== "undefined") {
+              window.localStorage?.removeItem("auth_token");
+              const next = encodeURIComponent(window.location.pathname + window.location.search);
+              window.location.href = `/auth/signin?next=${next}`;
+            }
+          } catch {}
+        }
+
         // Don't retry client errors (4xx) except rate limits (429)
         if (response.status >= 400 && response.status < 500 && response.status !== 429) {
           throw new ApiError(

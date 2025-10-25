@@ -122,10 +122,19 @@ app = FastAPI(
 from .middleware import request_id_middleware
 app.middleware("http")(request_id_middleware)
 
-# (Dev) CORS — handy if you'll hit endpoints from a local frontend
+# (Dev) CORS — allow specific origins from env or sensible defaults
+_cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_env:
+    allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -190,6 +199,7 @@ def _mount(router_mod_path: str, attr: str = "router"):
 _mount("app.routers.schedule")
 _mount("app.routers.analytics")
 _mount("app.routers.retry")
+_mount("app.routers.razorpay_webhooks")
 
 # Maintenance router (explicit include, fail loudly if import breaks)
 app.include_router(maintenance_router_module.router)
