@@ -10,29 +10,52 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
+
       - name: Install deps
         run: |
           python -m pip install -U pip
           pip install -r requirements.txt
           pip install python-dotenv ruff
+          # Install package in editable mode only if the repo is packaged (pyproject/setup.py/setup.cfg)
+          if [ -f pyproject.toml ] || [ -f setup.cfg ] || [ -f setup.py ]; then
+            pip install -e .
+          fi
+
       - name: Lint (non-blocking)
         run: ruff check app tests || true
+
       - name: Ensure app is importable (PYTHONPATH)
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Debug: show python info (optional, helps diagnose import issues)
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          python -c "import sys, os; print('sys.path='); print('\\n'.join(sys.path))"
+          ls -la
+          ls -la app || true
+
       - name: Run tests (hermetic CI)
         env:
           SKIP_DB: "1"
           SKIP_RAZORPAY_TESTS: "1"
+          FEATURE_RAZORPAY_ALLOW_ORDER_CREATION: "off"
         run: pytest -q
 
   console:
