@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 
 BASE_URL = os.getenv("API_URL", "http://localhost:8010")
 FRONTEND_URL = "http://localhost:3000"
+SKIP_DB = os.getenv("SKIP_DB", "1").lower() in ("1", "true", "yes")
 
 def print_section(title):
     """Print a section header"""
@@ -52,13 +53,19 @@ def test_frontend_accessible():
 def seed_test_data():
     """Seed test organization and user"""
     print_section("3. Seed Test Data")
+    if SKIP_DB:
+        print("(skipped) DB seed disabled; set SKIP_DB=0 to enable")
+        return None
     
     # Create organization directly in database
     from sqlalchemy import create_engine, text
     from sqlalchemy.orm import sessionmaker
     
-    # Use docker compose service name
-    engine = create_engine("postgresql://tinko:tinko@localhost:5432/tinko")
+    # Use DATABASE_URL from environment (Neon Postgres)
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError("DATABASE_URL not set. Please set your Neon Postgres URL in .env before running smoke tests.")
+    engine = create_engine(db_url)
     Session = sessionmaker(bind=engine)
     session = Session()
     
@@ -104,11 +111,11 @@ def seed_test_data():
 def login_and_get_token():
     """Login and get access token"""
     print_section("4. Authentication Test")
-    
+    # Backend exposes JSON login at POST /v1/auth/login
     response = requests.post(
-        f"{BASE_URL}/v1/auth/token",
-        data={
-            "username": "test@example.com",
+        f"{BASE_URL}/v1/auth/login",
+        json={
+            "email": "test@example.com",
             "password": "password123"
         }
     )
@@ -119,7 +126,11 @@ def login_and_get_token():
         return None
     
     data = response.json()
-    access_token = data["access_token"]
+    access_token = data.get("access_token")
+    if not access_token:
+        print("❌ Login response did not include access_token")
+        print(response.text)
+        return None
     print("✅ Successfully authenticated")
     print(f"   Token: {access_token[:20]}...")
     return access_token
@@ -231,9 +242,13 @@ def print_summary():
     print("      docker compose exec backend celery -A app.worker.celery worker -l info")
     print("\n   2. Start Celery beat scheduler:")
     print("      docker compose exec backend celery -A app.worker.celery beat -l info")
-    print("\n   3. Test Stripe webhook (if Stripe CLI installed):")
-    print("      stripe listen --events checkout.session.completed --forward-to http://localhost:8000/v1/webhooks/stripe")
-    print("\n   4. Create test Stripe Checkout session via recovery link")
+    print("\n   3. Optional: Test Razorpay public order endpoint:")
+    example_payload = {"amount": 10000, "currency": "INR", "receipt": "test-001"}
+    cmd = (
+        f"curl -X POST \"{BASE_URL}/v1/payments/razorpay/orders-public\" "
+        f"-H 'Content-Type: application/json' -d '{json.dumps(example_payload)}'"
+    )
+    print(f"      {cmd}")
 
 def main():
     """Run all smoke tests"""
@@ -249,31 +264,38 @@ def main():
     """)
     
     try:
-        # Run tests
+        # Always run lightweight checks
         test_backend_health()
         test_frontend_accessible()
+
+        if SKIP_DB:
+            print("\nℹ️  Skipping DB-dependent smoke steps (set SKIP_DB=0 to enable)")
+            print_summary()
+            return
+
+        # Full flow (requires DB and configured backend auth)
         org_id = seed_test_data()
         token = login_and_get_token()
-        
+
         if not token:
             print("\n❌ Authentication failed - cannot proceed")
             return
-        
+
         failure_event = create_failure_event(token, org_id)
         if not failure_event:
             print("\n❌ Failed to create failure event - cannot proceed")
             return
-        
+
         recovery_link = generate_recovery_link(token, failure_event["transaction_ref"])
         if not recovery_link:
             print("\n❌ Failed to generate recovery link - cannot proceed")
             return
-        
+
         test_recovery_link_page(recovery_link["token"])
         test_mailhog()
-        
+
         print_summary()
-        
+
     except Exception as e:
         print(f"\n❌ Smoke test failed with error: {e}")
         import traceback

@@ -18,12 +18,10 @@ celery==5.4.0
 redis==5.2.1
 flower==2.0.1
 
-# PSP-001: Payment Service Providers
-stripe==11.1.1
-
 # Optional PSPs (install in environments that use them)
 twilio==9.4.0  # For SMS notifications
-# razorpay==1.4.2  # Optional: if you prefer official SDK over HTTP REST via httpx
+# Using built-in HTTP client for Razorpay; official SDK optional:
+# razorpay==1.4.2
 
 # Utilities
 python-dotenv==1.0.1

@@ -15,6 +15,12 @@ export default function RetryTokenCheckoutPage() {
   useEffect(() => {
     const run = async () => {
       try {
+        const allow = (process.env.NEXT_PUBLIC_ALLOW_RAZORPAY_CHECKOUT || "").toLowerCase();
+        const isAllowed = ["1", "true", "yes", "on"].includes(allow);
+        if (!isAllowed) {
+          setError("Checkout disabled by policy");
+          return;
+        }
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const info = await api.get<RecoverByToken>(`/v1/recoveries/by_token/${token}`);
         if (!info?.ok || !info?.data?.transaction_ref) {

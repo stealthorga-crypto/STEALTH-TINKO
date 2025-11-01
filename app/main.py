@@ -1,5 +1,6 @@
 # app/main.py
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import sentry_sdk
@@ -36,7 +37,7 @@ logger = get_logger(__name__)
 from .db import Base, engine
 
 # 4) Routers (import-guarded so app still boots even if one has an error)
-events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = payments_router = stripe_webhook_router = auth_router = retry_router = stripe_payments_router = maintenance_router = razorpay_router = analytics_router = recon_router = schedule_router = None
+events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = auth_router = retry_router = maintenance_router = razorpay_router = analytics_router = recon_router = schedule_router = None
 
 try:
     from .routers.auth import router as auth_router
@@ -48,10 +49,7 @@ try:
 except Exception:
     pass
 
-try:
-    from .routers.stripe_payments import router as stripe_payments_router
-except Exception:
-    pass
+# Stripe payments router deprecated/removed
 
 try:
     from .routers.events import router as events_router
@@ -80,15 +78,9 @@ try:
 except Exception:
     pass
 
-try:
-    from .routers.payments import router as payments_router
-except Exception:
-    pass
+# Legacy Stripe payments router removed
 
-try:
-    from .routers.webhooks_stripe import router as stripe_webhook_router
-except Exception:
-    pass
+# Stripe webhooks removed
 
 try:
     from .routers.analytics import router as analytics_router
@@ -158,13 +150,21 @@ def healthz():
 def readyz():
     return {"ready": True}
 
+# Friendly default for "/": redirect to the interactive API docs
+@app.get("/")
+def root():
+    try:
+        return RedirectResponse(url="/docs", status_code=307)
+    except Exception:
+        # Fallback if RedirectResponse import fails for any reason
+        return JSONResponse({"message": "Service is running", "docs": "/docs", "health": "/healthz"})
+
 # Mount routers if present
 if auth_router:
     app.include_router(auth_router)
 if retry_router:
     app.include_router(retry_router)
-if stripe_payments_router:
-    app.include_router(stripe_payments_router)
+# no Stripe routers
 if events_router:
     app.include_router(events_router)
 if recoveries_router:
@@ -175,10 +175,8 @@ if recovery_links_router:
     app.include_router(recovery_links_router)
 if classifier_router:
     app.include_router(classifier_router)
-if payments_router:
-    app.include_router(payments_router)
-if stripe_webhook_router:
-    app.include_router(stripe_webhook_router)
+# no legacy payments router
+# no Stripe webhooks
 if razorpay_router:
     app.include_router(razorpay_router)
 if recon_router:
@@ -190,9 +188,10 @@ def _mount(router_mod_path: str, attr: str = "router"):
         mod = __import__(router_mod_path, fromlist=[attr])
         router = getattr(mod, attr)
         app.include_router(router)
-        print(f"✅ Mounted {router_mod_path}.{attr}")
+        # Avoid non-ASCII symbols that can break Windows codepages
+        print(f"Mounted {router_mod_path}.{attr}")
     except Exception as e:
-        print(f"❌ Failed to mount {router_mod_path}: {e}")
+        print(f"Failed to mount {router_mod_path}: {e}")
         traceback.print_exc()
 
 # IMPORTANT: use absolute paths from root app
@@ -200,6 +199,7 @@ _mount("app.routers.schedule")
 _mount("app.routers.analytics")
 _mount("app.routers.retry")
 _mount("app.routers.razorpay_webhooks")
+_mount("app.routers.admin_db")
 
 # Maintenance router (explicit include, fail loudly if import breaks)
 app.include_router(maintenance_router_module.router)

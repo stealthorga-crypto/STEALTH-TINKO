@@ -13,6 +13,12 @@ export default function CheckoutRedirectPage({ params }: { params: { ref: string
   useEffect(() => {
     const go = async () => {
       try {
+        const allow = (process.env.NEXT_PUBLIC_ALLOW_RAZORPAY_CHECKOUT || "").toLowerCase();
+        const isAllowed = ["1", "true", "yes", "on"].includes(allow);
+        if (!isAllowed) {
+          setError("Checkout disabled by policy");
+          return;
+        }
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const order = await api.post<{ order_id: string; key_id: string; amount: number; currency: string }>(
           "/v1/payments/razorpay/orders-public",

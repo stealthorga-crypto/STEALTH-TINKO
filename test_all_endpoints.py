@@ -13,12 +13,14 @@ try:
 except Exception:
     pass
 
+import os
 import requests
 import json
 from datetime import datetime, timedelta
 import sys
 
-BASE_URL = "http://127.0.0.1:8000"
+# Allow overriding backend URL; default to the running local backend
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8010")
 
 def print_section(title):
     print("\n" + "="*60)
@@ -53,7 +55,7 @@ def test_event_ingestion():
             "transaction_ref": f"TXN_{datetime.now().strftime('%Y%m%d%H%M%S')}",
             "amount": 49999,  # ₹499.99 in paise
             "currency": "INR",
-            "gateway": "stripe",
+            "gateway": "razorpay",
             "failure_reason": "insufficient_funds",
             "occurred_at": datetime.now().isoformat(),
             "metadata": {
@@ -179,43 +181,39 @@ def test_recovery_token_validation(token):
         return False
 
 def test_payment_endpoints(txn_ref):
-    print_section("6. PAYMENT ENDPOINTS")
-    
-    if not txn_ref:
-        print("⚠️  Skipping - no transaction reference")
-        return
-    
+    print_section("6. PAYMENT ENDPOINTS (Razorpay)")
+
     try:
-        # Test Stripe Payment Intent (will fail without STRIPE_SECRET_KEY)
-        print("\n--- Stripe Payment Intent ---")
-        resp = requests.post(
-            f"{BASE_URL}/v1/payments/stripe/intents",
-            json={"transaction_ref": txn_ref},
-            timeout=5
-        )
+        # Status check (non-sensitive)
+        print("\n--- Razorpay Status ---")
+        resp = requests.get(f"{BASE_URL}/v1/payments/razorpay/status", timeout=5)
+        print(f"   Status: {resp.status_code}")
+        try:
+            print(f"   Body: {resp.json()}")
+        except Exception:
+            print("   Body: <non-JSON>")
+
+        # Ping Razorpay configuration
+        print("\n--- Razorpay Ping ---")
+        resp = requests.get(f"{BASE_URL}/v1/payments/razorpay/ping", timeout=5)
         if resp.status_code == 503:
-            print(f"⚠️  POST /v1/payments/stripe/intents - Not configured (expected in test)")
-            print(f"   Message: {resp.json().get('detail')}")
-        else:
-            print(f"✅ POST /v1/payments/stripe/intents - Status: {resp.status_code}")
-            print(f"   Response: {resp.json()}")
-        
-        # Test Stripe Checkout (will fail without STRIPE_SECRET_KEY)
-        print("\n--- Stripe Checkout ---")
-        resp = requests.post(
-            f"{BASE_URL}/v1/payments/stripe/checkout",
-            json={
-                "transaction_ref": txn_ref,
-                "success_url": "http://localhost:3000/success",
-                "cancel_url": "http://localhost:3000/cancel"
-            },
-            timeout=5
-        )
-        if resp.status_code == 503:
-            print(f"⚠️  POST /v1/payments/stripe/checkout - Not configured (expected in test)")
-        else:
-            print(f"✅ POST /v1/payments/stripe/checkout - Status: {resp.status_code}")
-        
+            print("⚠️  Razorpay not configured (set RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET)")
+            return True  # treat as soft pass
+        print(f"✅ GET /v1/payments/razorpay/ping - Status: {resp.status_code}")
+
+        # Optionally, test order creation if we have a transaction ref
+        if txn_ref:
+            print("\n--- Razorpay Create Order (public) ---")
+            resp = requests.post(
+                f"{BASE_URL}/v1/payments/razorpay/orders-public",
+                json={"ref": txn_ref},
+                timeout=5,
+            )
+            print(f"   Status: {resp.status_code}")
+            try:
+                print(f"   Body: {resp.json()}")
+            except Exception:
+                print("   Body: <non-JSON>")
         return True
     except Exception as e:
         print(f"❌ Payment endpoint tests failed: {e}")
@@ -225,18 +223,21 @@ def test_webhooks():
     print_section("7. WEBHOOK ENDPOINTS")
     
     try:
-        # Test Stripe webhook (will fail signature validation - expected)
-        print("\n--- Stripe Webhook ---")
+        # Test Razorpay webhook (will fail due to missing signature - expected)
+        print("\n--- Razorpay Webhook ---")
         resp = requests.post(
-            f"{BASE_URL}/v1/webhooks/stripe",
-            json={"type": "payment_intent.succeeded", "data": {"object": {"id": "pi_test"}}},
-            timeout=5
+            f"{BASE_URL}/v1/webhooks/razorpay",
+            json={"event": "payment.captured", "payload": {"payment": {"entity": {"id": "pay_test", "order_id": "order_test"}}}},
+            timeout=5,
         )
         if resp.status_code in [400, 503]:
-            print(f"⚠️  POST /v1/webhooks/stripe - Expected failure (no signature)")
-            print(f"   Message: {resp.json().get('detail')}")
+            print(f"⚠️  POST /v1/webhooks/razorpay - Expected failure (missing/invalid signature)")
+            try:
+                print(f"   Message: {resp.json().get('detail')}")
+            except Exception:
+                pass
         else:
-            print(f"✅ POST /v1/webhooks/stripe - Status: {resp.status_code}")
+            print(f"✅ POST /v1/webhooks/razorpay - Status: {resp.status_code}")
         
         return True
     except Exception as e:

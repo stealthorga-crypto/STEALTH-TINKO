@@ -7,6 +7,11 @@ class DB:
     def init(self):
         with open("db/schema.sql", "r", encoding="utf-8") as f:
             sql = f.read().lstrip("\ufeff")
+        # Skip SQLite-specific PRAGMA when using Postgres/Neon
+        if self.engine.dialect.name != "sqlite":
+            sql = "\n".join(
+                line for line in sql.splitlines() if not line.strip().upper().startswith("PRAGMA ")
+            )
         statements = [s.strip() for s in sql.split(";") if s.strip()]
         with self.engine.begin() as conn:
             for stmt in statements:

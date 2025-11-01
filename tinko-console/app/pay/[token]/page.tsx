@@ -35,7 +35,8 @@ export default function PaymentRecoveryPage() {
 
   const fetchRecoveryAttempt = async (token: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/v1/recoveries/by_token/${token}`);
+      const base = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8010";
+      const response = await fetch(`${base}/v1/recoveries/by_token/${token}`);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -51,7 +52,8 @@ export default function PaymentRecoveryPage() {
       setRecovery(data);
 
       // Mark as opened
-      await fetch(`http://localhost:8000/v1/recoveries/by_token/${token}/open`, {
+      const base2 = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8010";
+      await fetch(`${base2}/v1/recoveries/by_token/${token}/open`, {
         method: 'POST',
       });
 
@@ -198,7 +200,7 @@ export default function PaymentRecoveryPage() {
             🔒 Secure Payment
           </h4>
           <p className="text-xs text-green-800">
-            Your payment is processed securely through Stripe. We never store your card details.
+            Your payment is processed securely through Razorpay. We never store your card details.
           </p>
         </div>
 

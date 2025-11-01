@@ -45,9 +45,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      # Database connection (switch to PostgreSQL in production)
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/stealth_recovery
+      # Database connection: use Neon via .env DATABASE_URL
+      DATABASE_URL: ${DATABASE_URL}
       # JWT configuration
       JWT_SECRET: dev-secret-change-in-production-to-secure-random-string
       JWT_ALGORITHM: HS256
@@ -61,8 +63,6 @@ services:
       SMTP_PASSWORD: ""
       SMTP_FROM: noreply@stealth-recovery.dev
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
       mailhog:
@@ -92,8 +92,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/stealth_recovery
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
@@ -103,7 +105,6 @@ services:
     depends_on:
       - backend
       - redis
-      - db
     volumes:
       - ./app:/app/app
     command: celery -A app.worker:celery_app worker -l info
@@ -113,13 +114,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/stealth_recovery
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
     depends_on:
       - backend
       - redis
-      - db
     volumes:
       - ./app:/app/app
     command: celery -A app.worker:celery_app beat -l info

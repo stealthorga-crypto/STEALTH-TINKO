@@ -15,7 +15,7 @@ celery_app = Celery(
     'stealth_recovery',
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=['app.tasks.retry_tasks', 'app.tasks.notification_tasks']
+    include=['app.tasks.retry_tasks', 'app.tasks.notification_tasks', 'app.tasks.partition_tasks']
 )
 
 # Celery configuration
@@ -40,6 +40,14 @@ celery_app.conf.beat_schedule = {
     'cleanup-expired-attempts-daily': {
         'task': 'app.tasks.retry_tasks.cleanup_expired_attempts',
         'schedule': crontab(hour=2, minute=0),  # 2 AM daily
+    },
+    'create-monthly-partitions': {
+        'task': 'create_monthly_partitions',
+        'schedule': crontab(day_of_month='1', hour=0, minute=5),  # 00:05 on the 1st of each month
+    },
+    'reconcile-transactions-daily': {
+        'task': 'reconcile_transactions_daily',
+        'schedule': crontab(hour=3, minute=0),  # 3 AM daily
     },
 }
 

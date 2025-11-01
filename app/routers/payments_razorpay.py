@@ -17,6 +17,7 @@ from app.deps import get_db, get_current_user
 from app.models import Transaction, User, PspEvent
 from app import models
 from app.services.payments.razorpay_adapter import RazorpayAdapter
+from app.config.flags import flag
 from app.analytics.sink import emit
 
 router = APIRouter(prefix="/v1/payments/razorpay", tags=["Razorpay Payments"])
@@ -49,6 +50,23 @@ async def razorpay_ping():
         raise HTTPException(status_code=502, detail="Razorpay ping failed")
 
 
+@router.get("/status")
+async def razorpay_status():
+    """Non-sensitive status of Razorpay configuration.
+    Returns which env vars are present (true/false) without revealing values.
+    """
+    key_id_present = bool(os.getenv("RAZORPAY_KEY_ID"))
+    key_secret_present = bool(os.getenv("RAZORPAY_KEY_SECRET"))
+    webhook_secret_present = bool(os.getenv("RAZORPAY_WEBHOOK_SECRET"))
+    configured = key_id_present and key_secret_present
+    return {
+        "configured": configured,
+        "key_id_present": key_id_present,
+        "key_secret_present": key_secret_present,
+        "webhook_secret_present": webhook_secret_present,
+    }
+
+
 class CreateOrderIn(BaseModel):
     ref: str = Field(..., min_length=1, max_length=64)
 
@@ -66,6 +84,9 @@ def _get_txn(db: Session, ref: str) -> Optional[Transaction]:
 
 @router.post("/orders", response_model=CreateOrderOut)
 async def create_order(body: CreateOrderIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Policy gate: disable order creation unless explicitly enabled
+    if not flag("FEATURE_RAZORPAY_ALLOW_ORDER_CREATION", "off"):
+        raise HTTPException(status_code=403, detail="Order creation disabled by policy")
     key_id = os.getenv("RAZORPAY_KEY_ID")
     if not key_id or not os.getenv("RAZORPAY_KEY_SECRET"):
         raise HTTPException(status_code=503, detail="Razorpay not configured")
@@ -97,6 +118,9 @@ async def create_order_public(body: CreateOrderIn, db: Session = Depends(get_db)
     """Public endpoint to create a Razorpay order for a given transaction ref.
     Idempotent: returns existing order_id if already created.
     """
+    # Policy gate: disable order creation unless explicitly enabled
+    if not flag("FEATURE_RAZORPAY_ALLOW_ORDER_CREATION", "off"):
+        raise HTTPException(status_code=403, detail="Order creation disabled by policy")
     key_id = os.getenv("RAZORPAY_KEY_ID")
     if not key_id or not os.getenv("RAZORPAY_KEY_SECRET"):
         raise HTTPException(status_code=503, detail="Razorpay not configured")

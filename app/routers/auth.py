@@ -208,7 +208,7 @@ def _google_oauth_config():
     client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
     frontend_base = os.getenv("BASE_URL", "http://localhost:3000")
-    backend_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8000")
+    backend_base = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8010")
     redirect_uri = f"{backend_base}/v1/auth/oauth/google/callback"
     return client_id, client_secret, redirect_uri, frontend_base
 
