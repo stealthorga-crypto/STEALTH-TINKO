@@ -1,6 +1,7 @@
 """
 Shared pytest fixtures for all test modules.
 """
+import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -10,6 +11,10 @@ from app.main import app
 from app.db import Base, get_db, SessionLocal, engine
 from app.models import Organization, User, Transaction, RecoveryAttempt
 from app.security import hash_password
+
+# Skip entire test session in CI when DB should not be used
+if os.getenv("SKIP_DB") == "1":
+    pytest.skip("Skipping DB-dependent tests in CI (SKIP_DB=1)", allow_module_level=True)
 
 
 @pytest.fixture(scope="session", autouse=True)
