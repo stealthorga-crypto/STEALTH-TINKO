@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "tinko.in" }],
+      "destination": "https://www.tinko.in/$1",
+      "permanent": true
+    }
+  ]
+}

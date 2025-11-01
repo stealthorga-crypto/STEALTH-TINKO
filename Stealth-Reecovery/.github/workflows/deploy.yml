@@ -1,0 +1,39 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push backend
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/tinko-recovery-backend:${{ github.ref_name }}
+          ${{ secrets.DOCKER_USERNAME }}/tinko-recovery-backend:latest
+    
+    - name: Build and push frontend
+      uses: docker/build-push-action@v4
+      with:
+        context: ./tinko-console
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/tinko-recovery-frontend:${{ github.ref_name }}
+          ${{ secrets.DOCKER_USERNAME }}/tinko-recovery-frontend:latest

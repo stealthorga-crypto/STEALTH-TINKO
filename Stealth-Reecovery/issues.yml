@@ -1,0 +1,65 @@
+security:
+  - id: SEC-PASSHASH
+    severity: critical
+    evidence: "NextAuth demo; backend lacks hashed passwords & JWT"
+    fix: "Implement AUTH-001 with bcrypt + JWT; enforce require_role"
+  - id: SEC-CSRF
+    severity: high
+    evidence: "No CSRF for state-changing endpoints"
+    fix: "Add CSRF tokens or double-submit cookie for web forms"
+  - id: SEC-RATE
+    severity: high
+    evidence: "No throttling on public endpoints (events, links)"
+    fix: "Add rate limiting middleware (e.g., slowapi) + IP allowlists"
+  - id: SEC-IDEMP
+    severity: high
+    evidence: "No idempotency keys for payment/retry endpoints"
+    fix: "Accept Idempotency-Key header; store request hashes"
+
+reliability:
+  - id: REL-RETRY
+    severity: critical
+    evidence: "No async workers; retries not orchestrated"
+    fix: "RETRY-001 Celery + Redis + exponential backoff"
+  - id: REL-CIRCBREAK
+    severity: medium
+    evidence: "PSP/network calls can cascade failures"
+    fix: "Wrap external calls with circuit breaker (pybreaker)"
+
+observability:
+  - id: OBS-NOSENTRY
+    severity: high
+    evidence: "No error tracking/log correlation"
+    fix: "OBS-001 Sentry + structlog; add request_id"
+
+performance:
+  - id: PERF-NOINDEX
+    severity: medium
+    evidence: "Heavy reads expected on attempts/events"
+    fix: "Add composite indexes on (org_id, created_at), (transaction_ref), (category)"
+
+data:
+  - id: DATA-BACKUP
+    severity: high
+    evidence: "No backups/DR"
+    fix: "Automate daily RDS snapshots + tested restore runbook"
+  - id: DATA-PII
+    severity: high
+    evidence: "Customer details unencrypted at rest"
+    fix: "Column-level encryption or app-layer crypt for PII"
+
+compliance:
+  - id: CMP-GDPR
+    severity: medium
+    evidence: "No export/delete endpoints"
+    fix: "Add /v1/compliance/export, /v1/compliance/delete + audit log"
+
+frontend:
+  - id: FE-STATIC
+    severity: medium
+    evidence: "Dashboard uses mock data"
+    fix: "ANALYTICS-001; wire to live endpoints"
+  - id: FE-NO-E2E
+    severity: medium
+    evidence: "No Playwright tests"
+    fix: "E2E-001 playwright suite on CI"

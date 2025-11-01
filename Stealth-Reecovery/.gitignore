@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Secrets (do not commit real env files)
+.env
+*.env
+app/.env
+!*.env.example
+
+# Node/Next.js
+node_modules/
+.next/
+next-env.d.ts
+
+# Logs & artifacts
+*.log
+_logs/
+qa_artifacts/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# SQLite or local DB files
+*.db
+db/*.db
+# Tinko ignores
+tinko.db
+

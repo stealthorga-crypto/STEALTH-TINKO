@@ -1,0 +1,29 @@
+# Tinko Recovery - Robots.txt
+# https://www.robotstxt.org/
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /developer
+Disallow: /templates
+Disallow: /rules
+Disallow: /onboarding
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /sw.js
+Disallow: /workbox-*.js
+
+# Sitemaps
+Sitemap: https://www.tinko.in/sitemap.xml
+
+# Crawl-delay for aggressive crawlers
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10

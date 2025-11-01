@@ -1,0 +1,12 @@
+﻿version: 1
+tasks:
+  - name: simulate:otp-timeout
+    run:
+      shell: >
+        pwsh -NoProfile -Command
+        "$body = @{ event_id='evt_sim_otp'; event_type='payment_failed'; order_id='order_sim_1'; attempt_id='a1'; customer=@{ id='cust_sim' }; amount=50000; currency='INR'; status='failed'; failure=@{ code='otp_timeout'; message='OTP timed out' } } | ConvertTo-Json | % { Invoke-RestMethod -Method POST -Uri 'http://127.0.0.1:8900/webhook/payment' -Body $_ -ContentType 'application/json' }"
+  - name: simulate:issuer-decline
+    run:
+      shell: >
+        pwsh -NoProfile -Command
+        "$body = @{ event_id='evt_sim_decline'; event_type='payment_failed'; order_id='order_sim_2'; attempt_id='a1'; customer=@{ id='cust_sim2' }; amount=9900; currency='INR'; status='failed'; failure=@{ code='issuer_declined'; message='Do not honor' } } | ConvertTo-Json | % { Invoke-RestMethod -Method POST -Uri 'http://127.0.0.1:8900/webhook/payment' -Body $_ -ContentType 'application/json' }"

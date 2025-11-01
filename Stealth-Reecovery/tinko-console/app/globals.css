@@ -1,0 +1,18 @@
+﻿@import "tailwindcss";
+
+:root {
+  --brand-blue: #1e88e5;
+  --brand-blue-dark: #1565c0;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
