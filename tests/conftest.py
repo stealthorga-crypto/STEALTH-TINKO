@@ -12,14 +12,21 @@ from app.db import Base, get_db, SessionLocal, engine
 from app.models import Organization, User, Transaction, RecoveryAttempt
 from app.security import hash_password
 
-# Skip entire test session in CI when DB should not be used
-if os.getenv("SKIP_DB") == "1":
-    pytest.skip("Skipping DB-dependent tests in CI (SKIP_DB=1)", allow_module_level=True)
+def pytest_collection_modifyitems(config, items):
+    """When SKIP_DB=1, mark all tests as skipped to avoid DB/PSP usage."""
+    if os.getenv("SKIP_DB") == "1":
+        skip_marker = pytest.mark.skip(reason="Skipping DB-dependent tests in CI (SKIP_DB=1)")
+        for item in items:
+            item.add_marker(skip_marker)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     """Create all tables before running tests."""
+    if os.getenv("SKIP_DB") == "1":
+        # No-op in CI
+        yield
+        return
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
@@ -37,6 +44,10 @@ def client():
 @pytest.fixture(scope="function", autouse=True)
 def clean_db():
     """Clean database before each test to ensure isolation."""
+    if os.getenv("SKIP_DB") == "1":
+        # No-op in CI
+        yield
+        return
     db = SessionLocal()
     try:
         # Clean in order to avoid FK constraints
