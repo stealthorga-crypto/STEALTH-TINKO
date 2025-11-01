@@ -16,6 +16,9 @@ env/
 *.env
 app/.env
 !*.env.example
+# common env backups or variants
+.env.*
+*.env.*
 
 # Node/Next.js
 node_modules/
@@ -55,3 +58,4 @@ coverage/
 # OS/editor junk
 .DS_Store
 Thumbs.db
+NUL
