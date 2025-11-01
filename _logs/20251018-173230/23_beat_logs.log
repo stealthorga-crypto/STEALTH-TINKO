@@ -1,6 +1,0 @@
-beat-1  | Usage: celery [OPTIONS] COMMAND [ARGS]...
-beat-1  | Try 'celery --help' for help.
-beat-1  | 
-beat-1  | Error: Invalid value for '-A' / '--app': 
-beat-1  | Unable to load celery application.
-beat-1  | The module app.worker.celery was not found.

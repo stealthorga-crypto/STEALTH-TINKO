@@ -1,1 +1,0 @@
-﻿{"id":2,"org_id":1,"name":"QA Fast","max_retries":3,"initial_delay_minutes":1,"backoff_multiplier":2,"max_delay_minutes":60,"enabled_channels":["email"],"is_active":true,"created_at":"2025-10-23T05:37:18","updated_at":"2025-10-23T05:37:18"}
