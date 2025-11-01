@@ -11,35 +11,50 @@ try:
 except Exception:
     pass
 
+SKIP_DB = os.getenv("SKIP_DB") == "1"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-# Enforce Neon/PostgreSQL only
-if not SQLALCHEMY_DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL is not set. Please set a Neon Postgres URL in your .env, e.g. "
-        "postgresql+psycopg2://<USER>:<PASSWORD>@<HOST>:5432/<DB>?sslmode=require"
+def _safe_engine():
+    """Return a no-network, in-memory engine for CI or skip mode.
+
+    Using sqlite:///:memory: avoids any outbound connections at import time
+    and lets metadata operations be no-ops/safe during tests.
+    """
+    return create_engine("sqlite:///:memory:", future=True, echo=False)
+
+if SKIP_DB:
+    # CI or SKIP mode: do not require DATABASE_URL; use in-memory sqlite
+    engine = _safe_engine()
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
+else:
+    # Enforce Neon/PostgreSQL only
+    if not SQLALCHEMY_DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Please set a Neon Postgres URL in your .env, e.g. "
+            "postgresql+psycopg2://<USER>:<PASSWORD>@<HOST>:5432/<DB>?sslmode=require"
+        )
+
+    parsed = urlparse(SQLALCHEMY_DATABASE_URL)
+    if not parsed.scheme.startswith("postgresql"):
+        raise RuntimeError(
+            f"Unsupported DATABASE_URL scheme '{parsed.scheme}'. This application only supports Postgres/Neon."
+        )
+
+    # Ensure sslmode=require for Neon if not already present
+    if "sslmode=" not in SQLALCHEMY_DATABASE_URL and parsed.scheme.startswith("postgresql"):
+        sep = "&" if "?" in SQLALCHEMY_DATABASE_URL else "?"
+        SQLALCHEMY_DATABASE_URL = f"{SQLALCHEMY_DATABASE_URL}{sep}sslmode=require"
+
+    # Serverless-friendly engine options for Neon
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        future=True,
+        echo=False,
+        pool_pre_ping=True,
+        pool_recycle=300,
     )
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
 
-parsed = urlparse(SQLALCHEMY_DATABASE_URL)
-if not parsed.scheme.startswith("postgresql"):
-    raise RuntimeError(
-        f"Unsupported DATABASE_URL scheme '{parsed.scheme}'. This application only supports Postgres/Neon."
-    )
-
-# Ensure sslmode=require for Neon if not already present
-if "sslmode=" not in SQLALCHEMY_DATABASE_URL and parsed.scheme.startswith("postgresql"):
-    sep = "&" if "?" in SQLALCHEMY_DATABASE_URL else "?"
-    SQLALCHEMY_DATABASE_URL = f"{SQLALCHEMY_DATABASE_URL}{sep}sslmode=require"
-
-# Serverless-friendly engine options for Neon
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    future=True,
-    echo=False,
-    pool_pre_ping=True,
-    pool_recycle=300,
-)
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
 Base = declarative_base()
 
 

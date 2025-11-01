@@ -13,11 +13,22 @@ from app.models import Organization, User, Transaction, RecoveryAttempt
 from app.security import hash_password
 
 def pytest_collection_modifyitems(config, items):
-    """When SKIP_DB=1, mark all tests as skipped to avoid DB/PSP usage."""
+    """Apply CI skip markers based on env flags without importing DB.
+
+    - When SKIP_DB=1: skip all tests (hermetic CI, no DB/PSP)
+    - Else, when SKIP_RAZORPAY_TESTS=1: skip tests whose nodeid mentions 'razorpay'
+    """
     if os.getenv("SKIP_DB") == "1":
         skip_marker = pytest.mark.skip(reason="Skipping DB-dependent tests in CI (SKIP_DB=1)")
         for item in items:
             item.add_marker(skip_marker)
+        return
+    if os.getenv("SKIP_RAZORPAY_TESTS") == "1":
+        rp_skip = pytest.mark.skip(reason="Skipping Razorpay tests in CI (SKIP_RAZORPAY_TESTS=1)")
+        for item in items:
+            nid = item.nodeid.lower()
+            if "razorpay" in nid:
+                item.add_marker(rp_skip)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -10,6 +10,7 @@ jobs:
     env:
       FALLBACK_RETRY_RUNNER: true
       JWT_SECRET: test-secret
+      DOTENV_PATH: .env.ci
       # Provide dummy, non-connecting env so imports/tests don't raise
       DATABASE_URL: "postgresql+psycopg2://ci:ci@localhost:5432/ci?sslmode=require"
       SKIP_DB: "1"
@@ -17,24 +18,53 @@ jobs:
       RAZORPAY_KEY_SECRET: ""
       RAZORPAY_WEBHOOK_SECRET: ""
       SKIP_RAZORPAY_TESTS: "1"
+      PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
+      - name: System deps for psycopg2 (if not using binary wheels)
+        if: ${{ !contains(hashFiles('requirements.txt'), 'psycopg2-binary') }}
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev gcc
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install python-dotenv ruff
+      - name: Lint
+        run: ruff check app tests || true
+      - name: Print CI env snapshot (no secrets)
+        run: |
+          python - <<'PY'
+          import os
+          from dotenv import load_dotenv
+          load_dotenv(os.getenv("DOTENV_PATH",".env.ci"))
+          for k in ["DATABASE_URL","SKIP_DB","SKIP_RAZORPAY_TESTS"]:
+              print(k, bool(os.getenv(k)))
+          PY
       - name: Lint & tests (no network)
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
           SKIP_DB: "1"
           RAZORPAY_KEY_ID: ""
           RAZORPAY_KEY_SECRET: ""
           RAZORPAY_WEBHOOK_SECRET: ""
           SKIP_RAZORPAY_TESTS: "1"
         run: |
+          python - <<'PY'
+          import os
+          from dotenv import load_dotenv; load_dotenv(os.getenv("DOTENV_PATH",".env.ci"))
+          print("Importing app without DB/PSP...")
+          from app.main import app
+          print("OK: app imported")
+          PY
           python -m pytest -q -k "not e2e and not integration" || python -m pytest -q -k "not e2e and not integration" -x
 
   console:
