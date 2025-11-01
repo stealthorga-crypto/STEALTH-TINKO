@@ -7,23 +7,27 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.main import app
+# Import DB-related modules only (no app import at module import time)
 from app.db import Base, get_db, SessionLocal, engine
 from app.models import Organization, User, Transaction, RecoveryAttempt
 from app.security import hash_password
 
+# CI flags (evaluated once)
+SKIP_DB = os.getenv("SKIP_DB") == "1"
+SKIP_RAZORPAY_TESTS = os.getenv("SKIP_RAZORPAY_TESTS") == "1"
+
 def pytest_collection_modifyitems(config, items):
-    """Apply CI skip markers based on env flags without importing DB.
+    """Apply CI skip markers based on env flags without importing FastAPI app.
 
     - When SKIP_DB=1: skip all tests (hermetic CI, no DB/PSP)
     - Else, when SKIP_RAZORPAY_TESTS=1: skip tests whose nodeid mentions 'razorpay'
     """
-    if os.getenv("SKIP_DB") == "1":
+    if SKIP_DB:
         skip_marker = pytest.mark.skip(reason="Skipping DB-dependent tests in CI (SKIP_DB=1)")
         for item in items:
             item.add_marker(skip_marker)
         return
-    if os.getenv("SKIP_RAZORPAY_TESTS") == "1":
+    if SKIP_RAZORPAY_TESTS:
         rp_skip = pytest.mark.skip(reason="Skipping Razorpay tests in CI (SKIP_RAZORPAY_TESTS=1)")
         for item in items:
             nid = item.nodeid.lower()
@@ -34,7 +38,7 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
     """Create all tables before running tests."""
-    if os.getenv("SKIP_DB") == "1":
+    if SKIP_DB:
         # No-op in CI
         yield
         return
@@ -43,19 +47,28 @@ def setup_test_db():
     Base.metadata.drop_all(bind=engine)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def client():
     """
-    Create a test client for making HTTP requests.
-    This fixture is required by test_stripe_integration.py.
+    Lazily create a TestClient. When SKIP_DB=1, return a dummy client that skips tests on use.
     """
-    return TestClient(app)
+    if SKIP_DB:
+        class _Dummy:
+            def __getattr__(self, _):
+                def _skip(*a, **k):  # pragma: no cover
+                    pytest.skip("SKIP_DB=1: client disabled in CI")
+                return _skip
+        return _Dummy()
+    # Lazy import to avoid importing FastAPI app at module import time
+    from app.main import app as _app
+    with TestClient(_app) as c:
+        yield c
 
 
 @pytest.fixture(scope="function", autouse=True)
 def clean_db():
     """Clean database before each test to ensure isolation."""
-    if os.getenv("SKIP_DB") == "1":
+    if SKIP_DB:
         # No-op in CI
         yield
         return

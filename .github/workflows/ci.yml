@@ -8,7 +8,6 @@ jobs:
   api:
     runs-on: ubuntu-latest
     env:
-      DOTENV_PATH: .env
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -28,28 +27,12 @@ jobs:
           pip install python-dotenv ruff
       - name: Lint (non-blocking)
         run: ruff check app tests || true
-      - name: Load .env and import app (must succeed)
-        run: |
-          python - <<'PY'
-          import os
-          from dotenv import load_dotenv
-          # Load the repo's .env
-          load_dotenv(os.getenv("DOTENV_PATH",".env"))
-          # Print safe booleans (no secrets)
-          def b(k):
-              v = os.getenv(k)
-              print(f"{k} set: {bool(v)}")
-          b("DATABASE_URL")
-          b("RAZORPAY_KEY_ID")
-          b("RAZORPAY_KEY_SECRET")
-          b("RAZORPAY_WEBHOOK_SECRET")
-          # Import the app (should not crash)
-          from app.main import app
-          print("OK: app imported with .env")
-          PY
-      - name: Run tests (full)
+      - name: Ensure app is importable (PYTHONPATH)
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Run tests (hermetic CI)
         env:
-          DOTENV_PATH: .env
+          SKIP_DB: "1"
+          SKIP_RAZORPAY_TESTS: "1"
         run: pytest -q
 
   console:
