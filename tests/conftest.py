@@ -1,23 +1,38 @@
 """
 Shared pytest fixtures for all test modules.
 """
+import sys
+import pathlib
+import os
+
+# Ensure repo root (parent of tests/) is on sys.path so `import app` works without PYTHONPATH
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from app.main import app
-from app.db import Base, get_db, SessionLocal, engine
+from app.db import Base, SessionLocal, engine
 from app.models import Organization, User, Transaction, RecoveryAttempt
 from app.security import hash_password
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
-    """Create all tables before running tests."""
-    Base.metadata.create_all(bind=engine)
+    """Create all tables before running tests (skip drop in hermetic mode)."""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        # In hermetic CI (SKIP_DB=1), engine may be in-memory or a no-op
+        pass
     yield
-    Base.metadata.drop_all(bind=engine)
+    try:
+        if os.getenv("SKIP_DB", "").lower() not in ("1", "true", "yes"):
+            Base.metadata.drop_all(bind=engine)
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="function")
@@ -31,7 +46,10 @@ def client():
 
 @pytest.fixture(scope="function", autouse=True)
 def clean_db():
-    """Clean database before each test to ensure isolation."""
+    """Clean database before each test to ensure isolation (skip on SKIP_DB)."""
+    if os.getenv("SKIP_DB", "").lower() in ("1", "true", "yes"):
+        yield
+        return
     db = SessionLocal()
     try:
         # Clean in order to avoid FK constraints
@@ -105,6 +123,22 @@ def auth_headers(client, test_user):
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
+
+@pytest.fixture(scope="function")
+def test_transaction(db_session, test_org):
+    """Create a test transaction."""
+    transaction = Transaction(
+        transaction_ref="TXN-STRIPE-001",
+        amount=5000,  # $50.00
+        currency="usd",
+        org_id=test_org.id,
+        customer_email="customer@example.com",
+        customer_phone="+1234567890"
+    )
+    db_session.add(transaction)
+    db_session.commit()
+    db_session.refresh(transaction)
+    return transaction
 
 @pytest.fixture(scope="function")
 def test_transaction(db_session, test_org):

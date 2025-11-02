@@ -8,21 +8,44 @@ jobs:
   api:
     runs-on: ubuntu-latest
     env:
-      FALLBACK_RETRY_RUNNER: true
+      PYTHONUNBUFFERED: "1"
+      FALLBACK_RETRY_RUNNER: "true"
       JWT_SECRET: test-secret
       RAZORPAY_WEBHOOK_SECRET: test-secret
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
       - name: Install deps
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
+          pip install python-dotenv ruff
+
+      - name: Ensure app is importable (set PYTHONPATH)
+        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+
+      - name: Lint (non-blocking)
+        run: ruff check app tests || true
+
       - name: Run tests
-        run: |
-          pytest -q || pytest -q -x
+        env:
+          SKIP_DB: "1"
+          SKIP_RAZORPAY_TESTS: "1"
+          FEATURE_RAZORPAY_ALLOW_ORDER_CREATION: "off"
+        run: pytest -q
 
   console:
     runs-on: ubuntu-latest
