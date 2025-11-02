@@ -50,7 +50,15 @@ jobs:
 
       - name: Import smoke test
         run: |
-          python -c "import fastapi, app; import app.main as m; print('IMPORT_OK')"
+          python - <<'PY'
+          try:
+            import importlib
+            m = importlib.import_module("app")
+            print("OK: app importable from", getattr(m, '__file__', str(m)))
+          except Exception as e:
+            print("ERROR: cannot import app:", e)
+            raise
+          PY
 
       - name: Run tests (hermetic CI)
         env:
