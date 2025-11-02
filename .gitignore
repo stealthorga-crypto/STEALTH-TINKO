@@ -59,3 +59,30 @@ coverage/
 .DS_Store
 Thumbs.db
 NUL
+
+# Additional env/log/db ignores
+# Env variants
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+logs/
+*.log*
+*.pid
+
+# Local databases and journals
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Python build artifacts
+dist/
+build/
+*.egg-info/
+
+# Tool caches
+.ruff_cache/
