@@ -49,6 +49,10 @@ jobs:
           echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
       - name: Import smoke test
+        env:
+          SKIP_DB: "1"
+          SKIP_RAZORPAY_TESTS: "1"
+          FEATURE_RAZORPAY_ALLOW_ORDER_CREATION: "off"
         run: |
           python - <<'PY'
           try:
