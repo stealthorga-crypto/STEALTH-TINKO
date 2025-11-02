@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stealth-tinko"
+version = "0.0.1"
+requires-python = ">=3.11"
+description = "Tinko backend (FastAPI)"
+authors = [{ name = "Stealth Orga" }]
+
+[tool.setuptools]
+packages = ["app"]
+include-package-data = true
