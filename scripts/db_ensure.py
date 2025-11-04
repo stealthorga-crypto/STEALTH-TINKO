@@ -54,6 +54,12 @@ def build_engine_url() -> str:
 
 def get_model_metadata() -> Any:
     # Import model Base and register tables by importing models
+    # Ensure project root on sys.path
+    import sys as _sys
+    from pathlib import Path as _Path
+    ROOT = _Path(__file__).resolve().parents[1]
+    if str(ROOT) not in _sys.path:
+        _sys.path.insert(0, str(ROOT))
     from app.db import Base  # type: ignore
     import app.models  # noqa: F401
     return Base.metadata

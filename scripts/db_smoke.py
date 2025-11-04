@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
 import time
 from typing import Any
 
@@ -26,6 +28,11 @@ def load_env() -> None:
 
 
 def main() -> None:
+    # Ensure project root on sys.path for `import app`
+    ROOT = Path(__file__).resolve().parents[1]
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+
     load_env()
     # Avoid hermetic mode
     os.environ.pop("SKIP_DB", None)
