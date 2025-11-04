@@ -17,14 +17,11 @@ COPY app/ ./app/
 COPY migrations/ ./migrations/
 COPY alembic.ini .
 
-# Create directory for SQLite database
-RUN mkdir -p /app/data
-
 # Expose port
 EXPOSE 8000
 
 # Environment variables (override in docker-compose.yml or deployment)
-ENV DATABASE_URL=sqlite:////app/data/stealth_recovery.db
+# Note: DATABASE_URL must be provided at runtime (Neon Postgres connection string)
 ENV JWT_SECRET=change-me-in-production
 ENV JWT_ALGORITHM=HS256
 ENV JWT_EXPIRY_MINUTES=1440

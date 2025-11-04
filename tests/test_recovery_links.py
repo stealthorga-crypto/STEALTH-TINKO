@@ -3,9 +3,6 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-# Use isolated test database before importing app modules
-os.environ["DATABASE_URL"] = "sqlite:///./tinko_test.db"
-
 from app.main import app  # noqa: E402
 from app.db import SessionLocal, Base, engine  # noqa: E402
 from app import models  # noqa: E402

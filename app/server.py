@@ -6,8 +6,8 @@ from .rules import classify_failure, next_retry_options
 
 app = FastAPI(title="Tinko Recovery")
 
-# Prefer Neon Postgres via DATABASE_URL; fall back to legacy TINKO_DB_URL only if provided.
-db_url = os.getenv("DATABASE_URL") or os.getenv("TINKO_DB_URL") or ""
+# Require Neon Postgres via DATABASE_URL
+db_url = os.getenv("DATABASE_URL") or ""
 if not db_url:
     raise RuntimeError(
         "DATABASE_URL must be set (Neon Postgres). Provide it in .env or the environment."

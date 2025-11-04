@@ -3,8 +3,6 @@ from unittest import mock
 
 from fastapi.testclient import TestClient
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///./tinko_test.db")
-
 from app.main import app  # noqa: E402
 from app.db import Base, engine, SessionLocal  # noqa: E402
 from app import models  # noqa: E402
