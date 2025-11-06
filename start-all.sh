@@ -27,7 +27,11 @@ fi
 echo "\n▶️  Backend (FastAPI) on :$PORT_BACKEND"
 (
     cd "$ROOT_DIR"
-    /c/Python313/python -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT_BACKEND" --reload
+    PY="./.venv/Scripts/python.exe"
+    if [ ! -f "$PY" ]; then
+        if command -v python >/dev/null 2>&1; then PY="python"; else PY="/c/Python313/python"; fi
+    fi
+    "$PY" -m uvicorn app.main:app --host 127.0.0.1 --port "$PORT_BACKEND" --reload
 ) &
 BACKEND_PID=$!
 

@@ -22,6 +22,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(128), nullable=True)
     role = Column(String(32), nullable=False, default="operator")  # admin, analyst, operator
+    # Use is_active to gate login until email is verified (False until OTP verify)
     is_active = Column(Boolean, default=True, nullable=False)
     org_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -158,3 +159,46 @@ class PspEvent(Base):
     psp_event_id = Column(String(160), nullable=False, unique=True, index=True)
     payload = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ServiceUsage(Base):
+    """Track per-user or per-organization usage of services (for overuse detection).
+
+    This simple table records counts and thresholds so the application can flag
+    customers who exceed agreed limits and compute revenue saved / benefits.
+    """
+    __tablename__ = "service_usage"
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    service_name = Column(String(128), nullable=False, index=True)
+    usage_count = Column(Integer, nullable=False, default=0)
+    usage_limit = Column(Integer, nullable=True)  # Null means unlimited / not enforced
+    over_limit = Column(Boolean, nullable=False, default=False)
+    revenue_saved = Column(Integer, nullable=False, default=0)  # in smallest currency unit (e.g., cents)
+    # 'metadata' is a reserved attribute name on Declarative classes, use 'meta' as Python attr
+    meta = Column("metadata", JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # relationships for convenience
+    organization = relationship("Organization")
+    user = relationship("User")
+
+
+class EmailVerification(Base):
+    """Store email OTP verifications for signup/activation.
+
+    We store a bcrypt hash of the 6-digit code, an expiry timestamp, and whether it's used.
+    On successful verification, we'll mark the record used and flip the User.is_active to True.
+    """
+    __tablename__ = "email_verifications"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    code_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User")

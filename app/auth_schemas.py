@@ -56,3 +56,19 @@ class TokenPayload(BaseModel):
     org_id: int
     role: str
     exp: int
+
+
+# OTP Registration Flow Schemas
+class RegisterStartResponse(BaseModel):
+    ok: bool = True
+    message: str = "OTP sent to email"
+
+
+class VerifyRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class VerifyResponse(BaseModel):
+    ok: bool = True
+    message: str = "Email verified. You can now sign in."

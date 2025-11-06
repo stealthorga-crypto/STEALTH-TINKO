@@ -1,0 +1,40 @@
+# FastAPI with Auth0 JWT Validation Requirements
+
+fastapi==0.118.0
+uvicorn==0.37.0
+sqlalchemy==2.0.43
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# Auth0 JWT Authentication
+python-jose[cryptography]==3.5.0
+cryptography==43.0.3
+email-validator==2.1.0
+
+# For bcrypt (optional, if keeping old auth)
+bcrypt==5.0.0
+
+# Observability
+sentry-sdk==2.19.2
+structlog==25.1.0
+
+# Background Tasks & Retry Logic
+celery==5.4.0
+redis==5.2.1
+flower==2.0.1
+
+# Optional PSPs (install in environments that use them)
+twilio==9.4.0  # For SMS notifications
+# Using built-in HTTP client for Razorpay; official SDK optional:
+# razorpay==1.4.2
+
+# Utilities
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2
+httpx==0.28.1
+
+# HTTP client for JWKS
+requests==2.32.3

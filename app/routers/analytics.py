@@ -9,7 +9,7 @@ from typing import Optional
 
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import User, Transaction, RecoveryAttempt, FailureEvent
+from app.models import User, Transaction, RecoveryAttempt, FailureEvent, ServiceUsage
 
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics"])
 
@@ -170,3 +170,31 @@ def funnel(
     clicked = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.filter(RecoveryAttempt.status.in_(["opened", "completed"])) .subquery()).scalar() or 0
     paid = db.query(func.count(RecoveryAttempt.id)).select_from(q_base.filter(RecoveryAttempt.status == "completed").subquery()).scalar() or 0
     return {"failed": int(failed), "notified": int(notified), "clicked": int(clicked), "paid": int(paid)}
+
+
+@router.get("/service_usage")
+def service_usage(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List service usage entries for the current organization.
+
+    Returns an array of {service_name, usage_count, usage_limit, over_limit, revenue_saved}.
+    """
+    rows = (
+        db.query(ServiceUsage)
+        .filter(ServiceUsage.org_id == current_user.org_id)
+        .order_by(ServiceUsage.service_name.asc())
+        .all()
+    )
+    return [
+        {
+            "service_name": r.service_name,
+            "usage_count": int(r.usage_count or 0),
+            "usage_limit": int(r.usage_limit) if r.usage_limit is not None else None,
+            "over_limit": bool(r.over_limit),
+            "revenue_saved": int(r.revenue_saved or 0),
+            "updated_at": r.updated_at.isoformat() if getattr(r, "updated_at", None) else None,
+        }
+        for r in rows
+    ]
