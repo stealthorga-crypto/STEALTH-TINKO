@@ -11,7 +11,7 @@ import urllib.parse
 import httpx
 
 from ..deps import get_db, get_current_user, require_role
-from ..models import User, Organization
+from ..models import User, Organization, EmailVerification
 from ..security import hash_password, verify_password, create_jwt
 from ..auth_schemas import (
     UserCreate,
@@ -19,7 +19,13 @@ from ..auth_schemas import (
     UserResponse,
     OrganizationResponse,
     TokenResponse,
+    RegisterStartResponse,
+    VerifyRequest,
+    VerifyResponse,
 )
+from ..services.email_service import send_email
+from ..logging_config import get_logger
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -77,7 +83,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Organization name required for new registration",
         )
     
-    # Create user
+    # LEGACY path: immediate activation & JWT (kept for backward compatibility)
+    # If you want OTP-first, use /v1/auth/register/start and /v1/auth/register/verify
     hashed_pw = hash_password(user_data.password)
     user = User(
         email=user_data.email,
@@ -91,21 +98,127 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     db.refresh(organization)
-    
-    # Create JWT token
-    token_data = {
-        "user_id": user.id,
-        "org_id": user.org_id,
-        "role": user.role,
-    }
+
+    token_data = {"user_id": user.id, "org_id": user.org_id, "role": user.role}
     access_token = create_jwt(token_data)
-    
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
         user=UserResponse.from_orm(user),
         organization=OrganizationResponse.from_orm(organization),
     )
+
+
+def _generate_otp() -> str:
+    import secrets
+    # 6-digit numeric
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _create_or_get_org(db: Session, name: str, slug_hint: str | None) -> Organization:
+    org_slug = slug_hint or slugify(name)
+    existing_org = db.query(Organization).filter(Organization.slug == org_slug).first()
+    if existing_org:
+        raise HTTPException(status_code=400, detail=f"Organization slug '{org_slug}' already exists")
+    organization = Organization(name=name, slug=org_slug, is_active=True)
+    db.add(organization)
+    db.flush()
+    return organization
+
+
+@router.post("/register/start", response_model=RegisterStartResponse, status_code=status.HTTP_200_OK)
+def register_start(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Start registration by creating a user with is_active=False and emailing an OTP.
+
+    Frontend flow: collect email, password, full_name, org_name; call this endpoint; then prompt for OTP.
+    """
+    # Email must be unique
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user and existing_user.is_active:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create or get org (new org required for new registration)
+    if not user_data.org_name:
+        raise HTTPException(status_code=400, detail="Organization name required for new registration")
+
+    if existing_user is None:
+        organization = _create_or_get_org(db, user_data.org_name, user_data.org_slug)
+        role = "admin"
+        hashed_pw = hash_password(user_data.password)
+        user = User(
+            email=user_data.email,
+            hashed_password=hashed_pw,
+            full_name=user_data.full_name,
+            role=role,
+            org_id=organization.id,
+            is_active=False,  # locked until OTP verification
+        )
+        db.add(user)
+        db.flush()
+    else:
+        user = existing_user
+        organization = db.query(Organization).filter(Organization.id == user.org_id).first()
+
+    # Create OTP and email it
+    otp = _generate_otp()
+    # store a bcrypt hash of the code using existing password hash util
+    code_hash = hash_password(otp)
+    expires = datetime.now(timezone.utc) + timedelta(minutes=int(os.getenv("OTP_TTL_MINUTES", "10")))
+    ver = EmailVerification(user_id=user.id, email=user.email, code_hash=code_hash, expires_at=expires)
+    db.add(ver)
+    db.commit()
+
+    # Send OTP via email
+    subject = "Your Tinko verification code"
+    body = f"Hello{(' ' + (user.full_name or '')).rstrip()},\n\nYour verification code is: {otp}\nIt expires in 10 minutes.\n\nIf you didn't request this, you can ignore this email."
+    logger = get_logger(__name__)
+    
+    # ALWAYS log OTP in development mode for easy testing
+    if os.getenv("ENVIRONMENT", "development") == "development" or os.getenv("OTP_DEV_ECHO", "false").lower() in ("1", "true", "yes"):
+        logger.info("otp_generated", email=user.email, code=otp, expires_at=expires.isoformat())
+        print(f"\n{'='*60}")
+        print(f"🔐 OTP CODE FOR {user.email}: {otp}")
+        print(f"{'='*60}\n")
+    
+    try:
+        send_email(user.email, subject, body)
+        logger.info("otp_email_sent", email=user.email)
+    except Exception as e:
+        # Roll forward but inform client; verification can still be checked if they retrieve code via logs in dev
+        logger.warning("otp_email_failed", email=user.email, error=str(e))
+        print(f"⚠️  Failed to send email (but OTP is still valid): {e}")
+
+    return RegisterStartResponse(ok=True, message="OTP sent to email")
+
+
+@router.post("/register/verify", response_model=VerifyResponse)
+def register_verify(body: VerifyRequest, db: Session = Depends(get_db)):
+    # Find user
+    user = db.query(User).filter(User.email == body.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Find latest unused verification
+    ver = (
+        db.query(EmailVerification)
+        .filter(EmailVerification.user_id == user.id, EmailVerification.used_at.is_(None))
+        .order_by(EmailVerification.id.desc())
+        .first()
+    )
+    if not ver:
+        raise HTTPException(status_code=400, detail="No pending verification for this email")
+    if ver.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Verification code expired")
+
+    # verify code against hash
+    if not verify_password(body.code, ver.code_hash):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+
+    # Mark used and activate user
+    ver.used_at = datetime.now(timezone.utc)
+    user.is_active = True
+    db.commit()
+    return VerifyResponse(ok=True, message="Email verified. You can now sign in.")
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -126,7 +239,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive",
+            detail="User account is inactive or unverified",
         )
     
     # Create JWT token
