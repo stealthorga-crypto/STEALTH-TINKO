@@ -24,6 +24,7 @@ from ..auth_schemas import (
     VerifyResponse,
 )
 from ..services.email_service import send_email
+from ..services.auth0_otp_service import get_auth0_otp_service
 from ..logging_config import get_logger
 from datetime import datetime, timedelta, timezone
 
@@ -128,97 +129,124 @@ def _create_or_get_org(db: Session, name: str, slug_hint: str | None) -> Organiz
 
 
 @router.post("/register/start", response_model=RegisterStartResponse, status_code=status.HTTP_200_OK)
-def register_start(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Start registration by creating a user with is_active=False and emailing an OTP.
+async def register_start(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Start registration by triggering Auth0 Passwordless Email OTP.
 
     Frontend flow: collect email, password, full_name, org_name; call this endpoint; then prompt for OTP.
     """
-    # Email must be unique
+    logger = get_logger(__name__)
+    otp_provider = os.getenv("OTP_PROVIDER", "smtp")
+    
+    # Validate input
+    if not user_data.org_name:
+        raise HTTPException(status_code=400, detail="Organization name required for new registration")
+    
+    # Check if email already registered
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user and existing_user.is_active:
         raise HTTPException(status_code=400, detail="Email already registered")
-
-    # Create or get org (new org required for new registration)
-    if not user_data.org_name:
-        raise HTTPException(status_code=400, detail="Organization name required for new registration")
-
-    if existing_user is None:
-        organization = _create_or_get_org(db, user_data.org_name, user_data.org_slug)
-        role = "admin"
-        hashed_pw = hash_password(user_data.password)
-        user = User(
-            email=user_data.email,
-            hashed_password=hashed_pw,
-            full_name=user_data.full_name,
-            role=role,
-            org_id=organization.id,
-            is_active=False,  # locked until OTP verification
-        )
-        db.add(user)
-        db.flush()
+    
+    # Use Auth0 Passwordless OTP
+    if otp_provider == "auth0":
+        try:
+            auth0_service = get_auth0_otp_service()
+            success = await auth0_service.start(user_data.email)
+            
+            if not success:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to send verification email. Please try again."
+                )
+            
+            logger.info("auth0_otp_triggered", email=user_data.email)
+            return RegisterStartResponse(ok=True, message="OTP sent to email")
+            
+        except Exception as e:
+            logger.error("auth0_otp_error", email=user_data.email, error=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email. Please try again."
+            )
     else:
-        user = existing_user
-        organization = db.query(Organization).filter(Organization.id == user.org_id).first()
-
-    # Create OTP and email it
-    otp = _generate_otp()
-    # store a bcrypt hash of the code using existing password hash util
-    code_hash = hash_password(otp)
-    expires = datetime.now(timezone.utc) + timedelta(minutes=int(os.getenv("OTP_TTL_MINUTES", "10")))
-    ver = EmailVerification(user_id=user.id, email=user.email, code_hash=code_hash, expires_at=expires)
-    db.add(ver)
-    db.commit()
-
-    # Send OTP via email
-    subject = "Your Tinko verification code"
-    body = f"Hello{(' ' + (user.full_name or '')).rstrip()},\n\nYour verification code is: {otp}\nIt expires in 10 minutes.\n\nIf you didn't request this, you can ignore this email."
-    logger = get_logger(__name__)
-    
-    # ALWAYS log OTP in development mode for easy testing
-    if os.getenv("ENVIRONMENT", "development") == "development" or os.getenv("OTP_DEV_ECHO", "false").lower() in ("1", "true", "yes"):
-        logger.info("otp_generated", email=user.email, code=otp, expires_at=expires.isoformat())
-        print(f"\n{'='*60}")
-        print(f"🔐 OTP CODE FOR {user.email}: {otp}")
-        print(f"{'='*60}\n")
-    
-    try:
-        send_email(user.email, subject, body)
-        logger.info("otp_email_sent", email=user.email)
-    except Exception as e:
-        # Roll forward but inform client; verification can still be checked if they retrieve code via logs in dev
-        logger.warning("otp_email_failed", email=user.email, error=str(e))
-        print(f"⚠️  Failed to send email (but OTP is still valid): {e}")
-
-    return RegisterStartResponse(ok=True, message="OTP sent to email")
+        # Fallback to SMTP (legacy - should not be used in production)
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="SMTP OTP provider is deprecated. Use OTP_PROVIDER=auth0"
+        )
 
 
 @router.post("/register/verify", response_model=VerifyResponse)
-def register_verify(body: VerifyRequest, db: Session = Depends(get_db)):
-    # Find user
-    user = db.query(User).filter(User.email == body.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    # Find latest unused verification
-    ver = (
-        db.query(EmailVerification)
-        .filter(EmailVerification.user_id == user.id, EmailVerification.used_at.is_(None))
-        .order_by(EmailVerification.id.desc())
-        .first()
-    )
-    if not ver:
-        raise HTTPException(status_code=400, detail="No pending verification for this email")
-    if ver.expires_at < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Verification code expired")
-
-    # verify code against hash
-    if not verify_password(body.code, ver.code_hash):
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-
-    # Mark used and activate user
-    ver.used_at = datetime.now(timezone.utc)
-    user.is_active = True
-    db.commit()
-    return VerifyResponse(ok=True, message="Email verified. You can now sign in.")
+async def register_verify(body: VerifyRequest, db: Session = Depends(get_db)):
+    """Verify OTP with Auth0 and create/activate user in database."""
+    logger = get_logger(__name__)
+    otp_provider = os.getenv("OTP_PROVIDER", "smtp")
+    
+    if otp_provider == "auth0":
+        try:
+            # Verify OTP with Auth0
+            auth0_service = get_auth0_otp_service()
+            user_info = await auth0_service.verify(body.email, body.code)
+            
+            if not user_info or not user_info.get("email_verified"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid or expired verification code"
+                )
+            
+            # Check if user already exists
+            existing_user = db.query(User).filter(User.email == body.email).first()
+            
+            if existing_user and existing_user.is_active:
+                # User already registered and verified
+                logger.info("duplicate_registration_attempt", email=body.email)
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="User already registered. Please sign in instead."
+                )
+            
+            if existing_user:
+                # User exists but not active, update and activate
+                user = existing_user
+                user.is_active = True
+                user.hashed_password = hash_password(body.password)  # Update password
+                user.full_name = body.full_name  # Update name
+                logger.info("user_reactivated", email=body.email, user_id=user.id)
+            else:
+                # Create new organization
+                organization = _create_or_get_org(db, body.org_name, body.org_slug)
+                
+                # Create new user
+                hashed_pw = hash_password(body.password)
+                user = User(
+                    email=body.email,
+                    hashed_password=hashed_pw,
+                    full_name=body.full_name,
+                    role="admin",
+                    org_id=organization.id,
+                    is_active=True,  # Verified by Auth0
+                )
+                db.add(user)
+                logger.info("new_user_created", email=body.email)
+            
+            db.commit()
+            db.refresh(user)
+            logger.info("user_verified_and_created", email=body.email, user_id=user.id)
+            
+            return VerifyResponse(ok=True, message="Email verified. You can now sign in.")
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("auth0_verify_error", email=body.email, error=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Verification failed. Please try again."
+            )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="SMTP OTP provider is deprecated. Use OTP_PROVIDER=auth0"
+        )
 
 
 @router.post("/login", response_model=TokenResponse)

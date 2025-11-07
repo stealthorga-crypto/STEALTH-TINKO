@@ -114,6 +114,10 @@ app = FastAPI(
 from .middleware import request_id_middleware
 app.middleware("http")(request_id_middleware)
 
+# Add rate limiting middleware for auth endpoints
+from .middleware_ratelimit import RateLimitMiddleware
+app.add_middleware(RateLimitMiddleware)
+
 # (Dev) CORS — allow specific origins from env or sensible defaults
 _cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
 if _cors_env:

@@ -67,6 +67,10 @@ class RegisterStartResponse(BaseModel):
 class VerifyRequest(BaseModel):
     email: EmailStr
     code: str
+    password: str = Field(..., min_length=8)
+    full_name: str
+    org_name: str
+    org_slug: Optional[str] = None
 
 
 class VerifyResponse(BaseModel):
