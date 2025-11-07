@@ -2,7 +2,22 @@
 
 A comprehensive recovery and authentication platform built with FastAPI (backend) and Next.js (frontend).
 
-## 🚀 Quick Start
+## � Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Testing the Application](#-testing-the-application)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Configuration](#-configuration)
+- [Development](#-development)
+- [Testing & Verification](#-testing--verification)
+- [OTP Authentication Flow](#-otp-authentication-flow)
+- [Troubleshooting](#-troubleshooting)
+- [API Documentation](#-api-documentation)
+
+---
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -14,32 +29,36 @@ A comprehensive recovery and authentication platform built with FastAPI (backend
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/stealthorga-crypto/STEALTH-TINKO.git
    cd STEALTH-TINKO
    ```
 
 2. **Set up Python environment**
+
    ```bash
    python -m venv .venv
-   
+
    # Windows (Git Bash)
    source .venv/Scripts/activate
-   
+
    # Windows (PowerShell)
    .venv\Scripts\Activate.ps1
-   
+
    # Linux/Mac
    source .venv/bin/activate
    ```
 
 3. **Install Python dependencies**
+
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
 4. **Install frontend dependencies**
+
    ```bash
    cd tinko-console
    npm install
@@ -47,25 +66,98 @@ A comprehensive recovery and authentication platform built with FastAPI (backend
    ```
 
 5. **Configure environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your actual values
    ```
 
    **Required variables:**
+
    - `DATABASE_URL`: Your PostgreSQL connection string
    - `SECRET_KEY`: Random secret for encryption
    - `JWT_SECRET`: Secret for JWT tokens
 
 6. **Run the application**
+
    ```bash
    bash start-all.sh
    ```
 
    The application will start:
+
    - **Backend**: http://127.0.0.1:8010
    - **Frontend**: http://localhost:3000
    - **API Docs**: http://127.0.0.1:8010/docs
+
+---
+
+## 🧪 Testing the Application
+
+### Quick Test Links
+
+Once the application is running, click these links to test:
+
+#### Frontend (User Interface)
+1. **Homepage**: http://localhost:3000
+2. **Signup & OTP Test**: http://localhost:3000/auth/signup ⭐
+3. **Login**: http://localhost:3000/auth/login
+
+#### Backend (API)
+1. **API Documentation (Swagger)**: http://127.0.0.1:8010/docs ⭐
+2. **Health Check**: http://127.0.0.1:8010/healthz
+3. **Alternative API Docs (ReDoc)**: http://127.0.0.1:8010/redoc
+
+### Testing OTP Flow (Step-by-Step)
+
+**Important**: Keep the terminal with `start-all.sh` VISIBLE to see the OTP code!
+
+1. **Open Signup Page**: http://localhost:3000/auth/signup
+
+2. **Fill the Form**:
+   - Full Name: `Test User`
+   - Email: `test@example.com` (use unique email each time)
+   - Password: `TestPass123!` (min 8 characters)
+   - Organization: `Test Company`
+
+3. **Send OTP**:
+   - Click "Send OTP" button
+   - Look at your terminal - you'll see:
+     ```
+     ============================================================
+     🔐 OTP CODE FOR test@example.com: 123456
+     ============================================================
+     ```
+
+4. **Verify OTP**:
+   - Enter the 6-digit OTP code
+   - Click "Verify & Sign Up"
+   - You should see success message
+
+5. **Login**:
+   - Go to: http://localhost:3000/auth/login
+   - Enter your email and password
+   - Click "Login"
+   - You'll receive a JWT token
+
+### Automated Testing
+
+Run the verification script to check your setup:
+
+```bash
+bash test-startup.sh
+```
+
+This checks:
+- ✅ Python version (>= 3.11)
+- ✅ Node.js version (>= 18)
+- ✅ Virtual environment exists
+- ✅ Dependencies installed
+- ✅ Environment file exists
+- ✅ Backend imports successfully
+- ✅ TypeScript compiles without errors
+
+---
 
 ## 📋 Features
 
@@ -152,12 +244,14 @@ npm run lint
 See `.env.example` for all available configuration options.
 
 **Essential variables:**
+
 - `DATABASE_URL`: PostgreSQL connection string
 - `SECRET_KEY`: Application secret key
 - `JWT_SECRET`: JWT signing secret
 - `NEXT_PUBLIC_API_URL`: Backend API URL for frontend
 
 **Optional variables:**
+
 - `OTP_DEV_ECHO=true`: Display OTP in terminal (development only)
 - `SMTP_HOST`: Email server host
 - `SMTP_PORT`: Email server port
@@ -177,11 +271,13 @@ See `.env.example` for all available configuration options.
 ## 🧪 Testing
 
 ### Run Startup Tests
+
 ```bash
 bash test-startup.sh
 ```
 
 ### Backend Tests
+
 ```bash
 # Run all tests
 pytest
@@ -194,6 +290,7 @@ pytest tests/test_auth.py
 ```
 
 ### Frontend Tests
+
 ```bash
 cd tinko-console
 
@@ -204,53 +301,110 @@ npx tsc --noEmit
 npm run lint
 ```
 
+---
+
 ## 📚 API Documentation
 
 Once the backend is running, access the interactive API documentation at:
+
 - **Swagger UI**: http://127.0.0.1:8010/docs
 - **ReDoc**: http://127.0.0.1:8010/redoc
 
-## 🔐 Authentication Flow
+### Testing API Endpoints
 
-1. **Registration**
+1. Open Swagger UI: http://127.0.0.1:8010/docs
+2. Find any endpoint (e.g., `POST /v1/auth/register/start`)
+3. Click "Try it out"
+4. Fill in the request body:
+   ```json
+   {
+     "email": "api-test@example.com",
+     "password": "TestPass123!",
+     "full_name": "API Test User",
+     "org_name": "API Test Org"
+   }
+   ```
+5. Click "Execute"
+6. Check the response (should be 200 OK)
+7. Check terminal for OTP code
+
+---
+
+## 🔐 OTP Authentication Flow
+
+### How It Works
+
+1. **Registration (Step 1: Send OTP)**
    - User submits email, password, and details
-   - System generates 6-digit OTP
-   - OTP sent via email (or displayed in terminal if `OTP_DEV_ECHO=true`)
-   
-2. **OTP Verification**
-   - User enters OTP code
-   - System verifies and activates account
-   
+   - System creates inactive user account
+   - System generates 6-digit OTP code
+   - OTP sent via email OR displayed in terminal (if `OTP_DEV_ECHO=true`)
+   - OTP expires in 10 minutes
+
+2. **Verification (Step 2: Verify OTP)**
+   - User enters the 6-digit OTP code
+   - System verifies OTP is correct and not expired
+   - Account is activated
+   - User can now login
+
 3. **Login**
-   - User submits credentials
-   - System returns JWT access token
-   
+   - User submits email and password
+   - System validates credentials
+   - Returns JWT access token
+   - Token expires in 30 minutes
+
 4. **Authenticated Requests**
    - Include token in `Authorization: Bearer <token>` header
+   - All protected endpoints require valid JWT token
+
+### OTP Display in Development
+
+When `OTP_DEV_ECHO=true` in `.env`, the OTP appears in the terminal with a prominent banner:
+
+```
+============================================================
+🔐 OTP CODE FOR user@example.com: 123456
+============================================================
+```
+
+**Important**: Keep the terminal visible when testing!
+
+### API Endpoints
+
+- `POST /v1/auth/register/start` - Start registration, send OTP
+- `POST /v1/auth/register/verify` - Verify OTP and activate account
+- `POST /v1/auth/login` - Login with email/password, get JWT token
+
+---
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
 1. **"ModuleNotFoundError"**
+
    - Solution: Activate virtual environment and install dependencies
+
    ```bash
    source .venv/Scripts/activate  # Windows Git Bash
    pip install -r requirements.txt
    ```
 
 2. **"Port already in use"**
+
    - Solution: Kill existing process or change port
+
    ```bash
    # Windows
    netstat -ano | findstr :8010
    taskkill /PID <PID> /F
-   
+
    # Linux/Mac
    lsof -ti:8010 | xargs kill -9
    ```
 
 3. **"Cannot connect to database"**
+
    - Solution: Verify `DATABASE_URL` in `.env`
    - Ensure database server is running and accessible
 
@@ -263,13 +417,52 @@ Once the backend is running, access the interactive API documentation at:
    npm run dev
    ```
 
-For detailed troubleshooting, see [SETUP_VERIFICATION.md](./SETUP_VERIFICATION.md)
+5. **OTP not appearing in terminal**
+   - Verify `OTP_DEV_ECHO=true` in `.env`
+   - Check that terminal with `start-all.sh` is still running
+   - Look for the banner format in terminal output
+
+6. **"TypeScript compilation errors"**
+   - Solution: All errors have been fixed. If you see any:
+   ```bash
+   cd tinko-console
+   npm install jose  # Ensure jose package is installed
+   npx tsc --noEmit  # Should pass with no errors
+   ```
+
+---
 
 ## 📝 Documentation
 
-- [Setup Verification Guide](./SETUP_VERIFICATION.md) - Complete setup verification steps
-- [OTP Testing Guide](./OTP_TESTING_GUIDE.md) - How to test OTP functionality
-- [TypeScript Fixes](./TYPESCRIPT_FIXES.md) - Recent TypeScript improvements
+---
+
+## 📝 Documentation
+
+### Quick Reference
+
+- **Application Status**: ✅ Verified and working
+- **Last Updated**: November 7, 2025
+- **Repository**: https://github.com/stealthorga-crypto/STEALTH-TINKO
+- **Branch**: ci/fix-import-path
+
+### Recent Improvements
+
+- ✅ All TypeScript errors fixed
+- ✅ OTP display with prominent banner in development
+- ✅ Improved signup form with loading states and validation
+- ✅ Better error handling throughout authentication flow
+- ✅ Comprehensive testing documentation
+- ✅ Automated verification script
+
+### Key Files
+
+- `.env.example` - Environment variables template (copy to `.env`)
+- `requirements.txt` - Python dependencies
+- `tinko-console/package.json` - Frontend dependencies
+- `start-all.sh` - Application startup script
+- `test-startup.sh` - Automated verification script
+
+---
 
 ## 🤝 Contributing
 
@@ -291,14 +484,41 @@ This project is proprietary software. All rights reserved.
 ## 👥 Support
 
 If you encounter any issues:
-1. Check the [Setup Verification Guide](./SETUP_VERIFICATION.md)
+
+1. Run automated diagnostic: `bash test-startup.sh`
 2. Review the [Troubleshooting](#-troubleshooting) section
-3. Run `bash test-startup.sh` to diagnose setup issues
-4. Open an issue with:
+3. Check that all environment variables are set in `.env`
+4. Verify ports 8010 and 3000 are not in use
+5. Open an issue with:
    - Error message
    - Steps to reproduce
    - Environment details (OS, Python version, Node version)
+   - Output from `bash test-startup.sh`
+
+### Common Setup Verification
+
+```bash
+# Check Python version
+python --version  # Should be 3.11+
+
+# Check Node version  
+node --version  # Should be 18+
+
+# Check if virtual environment is activated
+which python  # Should point to .venv/Scripts/python
+
+# Run full verification
+bash test-startup.sh
+
+# Test imports
+python -c "from app.main import app; print('✅ Backend OK')"
+
+# Test TypeScript
+cd tinko-console && npx tsc --noEmit
+```
 
 ---
 
 **Happy coding! 🚀**
+
+**Status**: ✅ Application verified and ready for deployment
