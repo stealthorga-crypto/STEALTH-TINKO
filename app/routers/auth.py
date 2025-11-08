@@ -20,6 +20,19 @@ from ..auth_schemas import (
     OrganizationResponse,
     TokenResponse,
 )
+# Import OTP-related modules  
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from services.otp_service import OTPService
+from schemas.auth import (
+    LoginOTPRequest,
+    OTPVerifyRequest,
+    OTPSentResponse,
+    LoginResponse,
+    UserInfo,
+    ErrorResponse,
+)
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -115,20 +128,20 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()
-    
+
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
-    
+
     # Create JWT token
     token_data = {
         "user_id": user.id,
@@ -136,7 +149,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         "role": user.role,
     }
     access_token = create_jwt(token_data)
-    
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
@@ -145,6 +158,88 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     )
 
 
+# ========== EMAIL OTP LOGIN ENDPOINTS ==========
+
+@router.post("/login/request-otp", response_model=OTPSentResponse)
+def request_login_otp(request: LoginOTPRequest, db: Session = Depends(get_db)):
+    """
+    Request OTP for login (for existing users only).
+    Sends a 6-digit OTP to the user's email address.
+    """
+    # Check if user exists
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found. Please sign up first."
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    # Generate and send OTP
+    otp_service = OTPService(db)
+    success = otp_service.generate_and_send_otp(request.email)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send OTP. Please try again."
+        )
+    
+    return OTPSentResponse(
+        message="OTP sent to your email",
+        email=request.email
+    )
+
+
+@router.post("/login/verify-otp", response_model=LoginResponse)
+def verify_login_otp(request: OTPVerifyRequest, db: Session = Depends(get_db)):
+    """
+    Verify OTP and complete login.
+    Returns JWT token upon successful verification.
+    """
+    # Verify user exists
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    # Verify OTP
+    otp_service = OTPService(db)
+    if not otp_service.verify_otp(request.email, request.otp_code):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP"
+        )
+    
+    # Generate JWT token (same as regular login)
+    token_data = {
+        "user_id": user.id,
+        "org_id": user.org_id,
+        "role": user.role,
+    }
+    access_token = create_jwt(token_data)
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserInfo(
+            id=user.id,
+            email=user.email
+        )
+    )
 @router.get("/me", response_model=UserResponse)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
