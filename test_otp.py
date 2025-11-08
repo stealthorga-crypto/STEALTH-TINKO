@@ -14,7 +14,18 @@ import random
 import string
 
 # Set environment variables for testing
-os.environ.setdefault('SMTP_HOST', 'mailhog')
+# Auto-detect if running inside Docker (use 'mailhog') or outside (use 'localhost')
+default_smtp_host = 'localhost'  # Default to localhost for standalone testing
+try:
+    # Try to connect to mailhog first (Docker environment)
+    import socket
+    socket.create_connection(('mailhog', 1025), timeout=1)
+    default_smtp_host = 'mailhog'
+except:
+    # Fall back to localhost (standalone environment)
+    default_smtp_host = 'localhost'
+
+os.environ.setdefault('SMTP_HOST', default_smtp_host)
 os.environ.setdefault('SMTP_PORT', '1025')
 os.environ.setdefault('SMTP_USE_TLS', 'false')
 os.environ.setdefault('SMTP_FROM', 'noreply@stealth-recovery.dev')
