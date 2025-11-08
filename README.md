@@ -204,7 +204,7 @@ This project is licensed under the MIT License - see [LICENSE](./LICENSE) file f
 
 ## 📞 Support
 
-- 📧 Email: support@stealth-recovery.dev
+- 📧 Email: info@blocksandloops.com
 - 🐛 Issues: [GitHub Issues](https://github.com/stealthorga-crypto/STEALTH-TINKO/issues)
 - 📖 Docs: [Full Documentation](./CONSOLIDATED_DOCUMENTATION.md)
 
