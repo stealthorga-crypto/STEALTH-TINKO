@@ -199,8 +199,8 @@ This project is licensed under the MIT License - see [LICENSE](./LICENSE) file f
 
 ## 👥 Contributors
 
-- [@meruem89](https://github.com/meruem89) - Project Lead
-- [@sadishsugumaran](https://github.com/sadishsugumaran) - Core Developer
+- [@sadishsugumaran](https://github.com/sadishsugumaran) - Founder
+- [@meruem89](https://github.com/meruem89) - Core Developer
 
 ## 📞 Support
 
