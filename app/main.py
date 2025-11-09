@@ -37,10 +37,16 @@ logger = get_logger(__name__)
 from .db import Base, engine
 
 # 4) Routers (import-guarded so app still boots even if one has an error)
-events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = auth_router = retry_router = maintenance_router = razorpay_router = analytics_router = recon_router = schedule_router = None
+# Initialize router variables to None
+events_router = recoveries_router = dev_router = recovery_links_router = classifier_router = auth_router = retry_router = maintenance_router = razorpay_router = analytics_router = recon_router = schedule_router = customer_api_router = None
 
 try:
     from .routers.auth import router as auth_router
+except Exception:
+    pass
+
+try:
+    from .routers.customer_api import router as customer_api_router
 except Exception:
     pass
 
@@ -162,6 +168,8 @@ def root():
 # Mount routers if present
 if auth_router:
     app.include_router(auth_router)
+if customer_api_router:
+    app.include_router(customer_api_router)
 if retry_router:
     app.include_router(retry_router)
 # no Stripe routers

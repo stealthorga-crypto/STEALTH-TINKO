@@ -19,15 +19,63 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)  # Make nullable for OAuth-only users
     full_name = Column(String(128), nullable=True)
     role = Column(String(32), nullable=False, default="operator")  # admin, analyst, operator
     is_active = Column(Boolean, default=True, nullable=False)
     org_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Authentication provider tracking
+    auth_providers = Column(JSON, nullable=False, default=["email"])  # ["email", "google", "microsoft"]
+    google_id = Column(String(128), nullable=True, index=True)  # Google user ID
+    is_email_verified = Column(Boolean, default=False, nullable=False)
+    
+    # Account type and business info
+    account_type = Column(String(32), nullable=False, default="user")  # user, customer, admin
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     organization = relationship("Organization", back_populates="users")
+    api_keys = relationship("ApiKey", back_populates="user")
+
+
+class ApiKey(Base):
+    """API keys for customer integrations"""
+    __tablename__ = "api_keys"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    key_name = Column(String(128), nullable=False)  # e.g., "Production API", "Staging API"
+    key_hash = Column(String(255), nullable=False, unique=True, index=True)  # Hashed API key
+    key_prefix = Column(String(16), nullable=False)  # First few chars for display (sk_...)
+    
+    # Permissions and scope
+    scopes = Column(JSON, nullable=False, default=["read"])  # ["read", "write", "admin"]
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Usage tracking
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    usage_count = Column(Integer, default=0, nullable=False)
+    
+    # Expiry
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    user = relationship("User", back_populates="api_keys")
+    
+    @classmethod
+    def generate_key(cls):
+        """Generate a new API key with prefix"""
+        import secrets
+        key_id = secrets.token_urlsafe(32)
+        return f"sk_{key_id}"
+    
+    def mask_key(self):
+        """Return masked key for display"""
+        return f"{self.key_prefix}...{self.key_hash[-4:]}"
 
 
 class Transaction(Base):
@@ -190,3 +238,21 @@ class EmailOTP(Base):
     
     def __repr__(self):
         return f"<EmailOTP(email='{self.email}', created_at='{self.created_at}', is_used={self.is_used})>"
+
+
+class OTPSecurityLog(Base):
+    """Track OTP security events and rate limiting"""
+    __tablename__ = "otp_security_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), index=True, nullable=False)
+    ip_address = Column(String(45), nullable=True)  # IPv6 support
+    user_agent = Column(String(500), nullable=True)
+    action = Column(String(50), nullable=False)  # request_otp, verify_otp, failed_attempt, blocked
+    success = Column(Boolean, nullable=False)
+    attempt_count = Column(Integer, default=1, nullable=False)
+    blocked_until = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    
+    def __repr__(self):
+        return f"<OTPSecurityLog(email='{self.email}', action='{self.action}', success={self.success})>"

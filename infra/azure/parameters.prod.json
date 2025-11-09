@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "prod"
+    },
+    "applicationName": {
+      "value": "stealth-tinko"
+    },
+    "location": {
+      "value": "East US"
+    },
+    "adminEmail": {
+      "value": "admin@yourdomain.com"
+    },
+    "gitHubRepo": {
+      "value": "https://github.com/your-org/stealth-tinko"
+    },
+    "postgresAdminUser": {
+      "value": "stealthadmin"
+    },
+    "postgresAdminPassword": {
+      "value": "ProductionSecurePassword123!"
+    },
+    "emailDomain": {
+      "value": "yourdomain.com"
+    }
+  }
+}
