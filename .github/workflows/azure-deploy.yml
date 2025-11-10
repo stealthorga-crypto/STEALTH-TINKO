@@ -221,6 +221,13 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name ${{ needs.determine-environment.outputs.resource-group }} \
+          --location "East US 2"
+        echo "✅ Resource group created: ${{ needs.determine-environment.outputs.resource-group }}"
+    
     - name: Deploy Azure infrastructure
       uses: azure/arm-deploy@v1
       id: deploy-infra
@@ -228,7 +235,15 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resourceGroupName: ${{ needs.determine-environment.outputs.resource-group }}
         template: ./infra/azure/main.bicep
-        parameters: ./infra/azure/parameters.${{ needs.determine-environment.outputs.environment }}.json
+        parameters: >
+          environment=${{ needs.determine-environment.outputs.environment }}
+          applicationName=stealth-tinko
+          location="East US 2"
+          adminEmail="admin@stealthorga-crypto.com"
+          gitHubRepo="https://github.com/stealthorga-crypto/STEALTH-TINKO"
+          postgresAdminUser="stealthadmin"
+          postgresAdminPassword="${{ secrets.DATABASE_PASSWORD }}"
+          emailDomain="stealthorga-crypto.com"
         failOnStdErr: false
     
     - name: Store infrastructure outputs
