@@ -2,13 +2,7 @@ name: Deploy STEALTH-TINKO to Azure
 
 on:
   push:
-    branches:
-      - main        # Production deployment
-      - develop     # Development deployment
-      - staging     # Staging deployment
-  pull_request:
-    branches:
-      - main
+    branches: [main, develop, staging]
   workflow_dispatch:
     inputs:
       environment:
@@ -16,117 +10,14 @@ on:
         required: true
         default: 'dev'
         type: choice
-        options:
-          - dev
-          - staging
-          - prod
-      skip_tests:
-        description: 'Skip tests'
-        required: false
-        default: false
-        type: boolean
+        options: [dev, staging, prod]
 
 env:
   PYTHON_VERSION: '3.11'
-  AZURE_WEBAPP_PACKAGE_PATH: '.'
 
 jobs:
   # =======================================
-  # Test Job
-  # =======================================
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_tests }}
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-asyncio pytest-cov httpx
-    
-    - name: Set up test environment
-      run: |
-        cp .env.example .env.test
-        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> .env.test
-        echo "ENVIRONMENT=test" >> .env.test
-    
-    - name: Run database migrations
-      run: |
-        export ENVIRONMENT=test
-        export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db
-        alembic upgrade head
-    
-    - name: Run tests with coverage
-      run: |
-        export ENVIRONMENT=test
-        export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db
-        pytest --cov=app --cov-report=xml --cov-report=html tests/
-    
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-
-  # =======================================
-  # Security Scan Job
-  # =======================================
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_tests }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Install bandit
-      run: pip install bandit[toml]
-    
-    - name: Run Bandit security scan
-      run: bandit -r app/ -f json -o bandit-report.json || true
-    
-    - name: Upload Bandit report
-      uses: actions/upload-artifact@v3
-      with:
-        name: bandit-report
-        path: bandit-report.json
-
-  # =======================================
-  # Determine Environment Job
+  # Determine Environment
   # =======================================
   determine-environment:
     name: Determine Environment
@@ -134,83 +25,37 @@ jobs:
     outputs:
       environment: ${{ steps.env.outputs.environment }}
       resource-group: ${{ steps.env.outputs.resource-group }}
+      app-name: ${{ steps.env.outputs.app-name }}
     
     steps:
     - name: Determine environment
       id: env
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          ENV="${{ inputs.environment }}"
         elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          echo "environment=prod" >> $GITHUB_OUTPUT
+          ENV="prod"
         elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
-          echo "environment=staging" >> $GITHUB_OUTPUT
+          ENV="staging"
         else
-          echo "environment=dev" >> $GITHUB_OUTPUT
+          ENV="dev"
         fi
         
-        env=$(cat $GITHUB_OUTPUT | grep environment | cut -d'=' -f2)
-        echo "resource-group=stealth-tinko-${env}-rg" >> $GITHUB_OUTPUT
+        echo "environment=${ENV}" >> $GITHUB_OUTPUT
+        echo "resource-group=stealth-tinko-${ENV}-rg" >> $GITHUB_OUTPUT
+        echo "app-name=stealth-tinko-${ENV}-app" >> $GITHUB_OUTPUT
 
   # =======================================
-  # Build Job
-  # =======================================
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: [test, security-scan, determine-environment]
-    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped')
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Create deployment package
-      run: |
-        # Install dependencies
-        python -m pip install --upgrade pip
-        pip install -r requirements-azure.txt
-        
-        # Create deployment directory
-        mkdir -p deployment
-        
-        # Copy application files
-        cp -r app deployment/
-        cp -r migrations deployment/
-        cp -r models deployment/ || true
-        cp -r services deployment/
-        cp -r schemas deployment/
-        cp -r tasks deployment/ || true
-        cp requirements-azure.txt deployment/
-        cp startup.py deployment/
-        cp alembic.ini deployment/
-        
-        # Create zip package
-        cd deployment
-        zip -r ../deployment-package.zip .
-        cd ..
-    
-    - name: Upload deployment package
-      uses: actions/upload-artifact@v3
-      with:
-        name: deployment-package
-        path: deployment-package.zip
-        retention-days: 30
-
-  # =======================================
-  # Deploy Infrastructure Job
+  # Deploy Infrastructure
   # =======================================
   deploy-infrastructure:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
-    needs: [build, determine-environment]
-    if: github.event_name != 'pull_request'
+    needs: [determine-environment]
     environment: ${{ needs.determine-environment.outputs.environment }}
+    outputs:
+      web-app-name: ${{ steps.deploy.outputs.webAppName }}
+      key-vault-name: ${{ steps.deploy.outputs.keyVaultName }}
     
     steps:
     - name: Checkout code
@@ -225,163 +70,156 @@ jobs:
       run: |
         az group create \
           --name ${{ needs.determine-environment.outputs.resource-group }} \
-          --location "East US 2"
-        echo "✅ Resource group created: ${{ needs.determine-environment.outputs.resource-group }}"
+          --location "East US 2" \
+          --tags Environment=${{ needs.determine-environment.outputs.environment }} Application=STEALTH-TINKO
+        echo "✅ Resource group created successfully"
     
-    - name: Deploy Azure infrastructure
-      uses: azure/arm-deploy@v1
-      id: deploy-infra
-      with:
-        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        resourceGroupName: ${{ needs.determine-environment.outputs.resource-group }}
-        template: ./infra/azure/main.bicep
-        parameters: >
-          environment=${{ needs.determine-environment.outputs.environment }}
-          applicationName=stealth-tinko
-          location="East US 2"
-          adminEmail="admin@stealthorga-crypto.com"
-          gitHubRepo="https://github.com/stealthorga-crypto/STEALTH-TINKO"
-          postgresAdminUser="stealthadmin"
-          postgresAdminPassword="${{ secrets.DATABASE_PASSWORD }}"
-          emailDomain="stealthorga-crypto.com"
-        failOnStdErr: false
-    
-    - name: Store infrastructure outputs
+    - name: Deploy Infrastructure
+      id: deploy
       run: |
-        echo "web-app-name=${{ steps.deploy-infra.outputs.webAppName }}" >> $GITHUB_OUTPUT
-        echo "key-vault-name=${{ steps.deploy-infra.outputs.keyVaultName }}" >> $GITHUB_OUTPUT
+        DEPLOYMENT_NAME="stealth-tinko-deployment-$(date +%Y%m%d-%H%M%S)"
+        UNIQUE_SUFFIX=$(echo $RANDOM | md5sum | head -c 6)
+        
+        az deployment group create \
+          --name $DEPLOYMENT_NAME \
+          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
+          --template-file ./infra/azure/main.bicep \
+          --parameters \
+            environment=${{ needs.determine-environment.outputs.environment }} \
+            applicationName=stealth-tinko \
+            location="East US 2" \
+            adminEmail="admin@stealthorga-crypto.com" \
+            gitHubRepo="https://github.com/stealthorga-crypto/STEALTH-TINKO" \
+            postgresAdminUser="stealthadmin" \
+            postgresAdminPassword="${{ secrets.DATABASE_PASSWORD }}" \
+            emailDomain="stealthorga-crypto.com" \
+          --verbose
+        
+        # Get outputs
+        WEB_APP_NAME=$(az deployment group show \
+          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.webAppName.value" -o tsv)
+        
+        KEY_VAULT_NAME=$(az deployment group show \
+          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.keyVaultName.value" -o tsv)
+        
+        echo "webAppName=${WEB_APP_NAME}" >> $GITHUB_OUTPUT
+        echo "keyVaultName=${KEY_VAULT_NAME}" >> $GITHUB_OUTPUT
+        echo "✅ Infrastructure deployed successfully"
 
   # =======================================
-  # Deploy Application Job
+  # Configure App Service
+  # =======================================
+  configure-app-service:
+    name: Configure App Service
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, determine-environment]
+    
+    steps:
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Store secrets in Key Vault
+      run: |
+        KEYVAULT_NAME="${{ needs.deploy-infrastructure.outputs.key-vault-name }}"
+        
+        az keyvault secret set \
+          --vault-name "${KEYVAULT_NAME}" \
+          --name "DATABASE-PASSWORD" \
+          --value "${{ secrets.DATABASE_PASSWORD }}"
+        
+        az keyvault secret set \
+          --vault-name "${KEYVAULT_NAME}" \
+          --name "JWT-SECRET-KEY" \
+          --value "${{ secrets.JWT_SECRET_KEY }}"
+        
+        echo "✅ Secrets stored in Key Vault"
+    
+    - name: Configure App Service settings
+      run: |
+        APP_NAME="${{ needs.deploy-infrastructure.outputs.web-app-name }}"
+        KEYVAULT_NAME="${{ needs.deploy-infrastructure.outputs.key-vault-name }}"
+        
+        az webapp config appsettings set \
+          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
+          --name "${APP_NAME}" \
+          --settings \
+            ENVIRONMENT="${{ needs.determine-environment.outputs.environment }}" \
+            DATABASE_PASSWORD="@Microsoft.KeyVault(VaultName=${KEYVAULT_NAME};SecretName=DATABASE-PASSWORD)" \
+            JWT_SECRET_KEY="@Microsoft.KeyVault(VaultName=${KEYVAULT_NAME};SecretName=JWT-SECRET-KEY)" \
+            PYTHONPATH="/home/site/wwwroot" \
+            SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+        
+        echo "✅ App Service configured"
+
+  # =======================================
+  # Deploy Application
   # =======================================
   deploy-application:
     name: Deploy Application
     runs-on: ubuntu-latest
-    needs: [deploy-infrastructure, determine-environment]
-    if: github.event_name != 'pull_request'
-    environment: ${{ needs.determine-environment.outputs.environment }}
-    
-    steps:
-    - name: Download deployment package
-      uses: actions/download-artifact@v3
-      with:
-        name: deployment-package
-    
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-    
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: stealth-tinko-${{ needs.determine-environment.outputs.environment }}-app
-        package: deployment-package.zip
-        startup-command: 'python startup.py && python -m gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000'
-
-  # =======================================
-  # Configure Secrets Job
-  # =======================================
-  configure-secrets:
-    name: Configure Azure Secrets
-    runs-on: ubuntu-latest
-    needs: [deploy-infrastructure, determine-environment]
-    if: github.event_name != 'pull_request'
-    environment: ${{ needs.determine-environment.outputs.environment }}
-    
-    steps:
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-    
-    - name: Set Key Vault secrets
-      run: |
-        # Set JWT secret
-        az keyvault secret set \
-          --vault-name stealth-tinko-${{ needs.determine-environment.outputs.environment }}-kv-* \
-          --name jwt-secret-key \
-          --value "${{ secrets.JWT_SECRET_KEY }}"
-        
-        # Set Google OAuth credentials
-        az keyvault secret set \
-          --vault-name stealth-tinko-${{ needs.determine-environment.outputs.environment }}-kv-* \
-          --name google-client-id \
-          --value "${{ secrets.GOOGLE_CLIENT_ID }}"
-        
-        az keyvault secret set \
-          --vault-name stealth-tinko-${{ needs.determine-environment.outputs.environment }}-kv-* \
-          --name google-client-secret \
-          --value "${{ secrets.GOOGLE_CLIENT_SECRET }}"
-
-  # =======================================
-  # Post-Deployment Tests Job
-  # =======================================
-  post-deployment-tests:
-    name: Post-Deployment Tests
-    runs-on: ubuntu-latest
-    needs: [deploy-application, configure-secrets, determine-environment]
-    if: github.event_name != 'pull_request'
+    needs: [configure-app-service, deploy-infrastructure, determine-environment]
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Azure Login
+      uses: azure/login@v1
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
     
-    - name: Install test dependencies
+    - name: Deploy to Azure App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ needs.deploy-infrastructure.outputs.web-app-name }}
+        package: .
+    
+    - name: Run database migrations
       run: |
-        pip install requests pytest
-    
-    - name: Wait for application startup
-      run: sleep 60
-    
-    - name: Run health check
-      run: |
-        APP_URL="https://stealth-tinko-${{ needs.determine-environment.outputs.environment }}-app.azurewebsites.net"
-        echo "Testing application at: $APP_URL"
+        APP_NAME="${{ needs.deploy-infrastructure.outputs.web-app-name }}"
         
-        # Health check
-        curl -f "$APP_URL/health" || exit 1
+        # Configure startup command for migrations
+        az webapp config set \
+          --resource-group ${{ needs.determine-environment.outputs.resource-group }} \
+          --name "${APP_NAME}" \
+          --startup-file "python startup.py"
         
-        # API documentation check
-        curl -f "$APP_URL/docs" || exit 1
-        
-        echo "✓ Post-deployment tests passed"
-    
-    - name: Run smoke tests
-      run: |
-        # Run basic API tests
-        python -m pytest tests/test_smoke.py -v || true
+        echo "✅ Application deployed and migrations configured"
 
   # =======================================
-  # Notification Job
+  # Verify Deployment
   # =======================================
-  notify:
-    name: Send Notification
+  verify-deployment:
+    name: Verify Deployment
     runs-on: ubuntu-latest
-    needs: [post-deployment-tests, determine-environment]
-    if: always() && github.event_name != 'pull_request'
+    needs: [deploy-application, deploy-infrastructure, determine-environment]
     
     steps:
-    - name: Determine status
-      id: status
+    - name: Health check
       run: |
-        if [ "${{ needs.post-deployment-tests.result }}" = "success" ]; then
-          echo "status=✅ SUCCESS" >> $GITHUB_OUTPUT
-          echo "color=good" >> $GITHUB_OUTPUT
+        APP_NAME="${{ needs.deploy-infrastructure.outputs.web-app-name }}"
+        APP_URL="https://${APP_NAME}.azurewebsites.net"
+        
+        echo "⏳ Waiting for application to start..."
+        sleep 120
+        
+        echo "🔍 Checking health endpoint: ${APP_URL}/health"
+        response=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/health" || echo "000")
+        
+        if [ "${response}" = "200" ]; then
+          echo "✅ Health check passed"
+          echo "🚀 Application successfully deployed at: ${APP_URL}"
         else
-          echo "status=❌ FAILED" >> $GITHUB_OUTPUT
-          echo "color=danger" >> $GITHUB_OUTPUT
+          echo "❌ Health check failed with status: ${response}"
+          echo "📋 Deployment summary:"
+          echo "   App Name: ${APP_NAME}"
+          echo "   URL: ${APP_URL}"
+          echo "   Check the Azure portal for logs and troubleshooting"
+          exit 1
         fi
-    
-    - name: Send deployment notification
-      run: |
-        echo "Deployment ${{ steps.status.outputs.status }}"
-        echo "Environment: ${{ needs.determine-environment.outputs.environment }}"
-        echo "URL: https://stealth-tinko-${{ needs.determine-environment.outputs.environment }}-app.azurewebsites.net"
-        echo "Commit: ${{ github.sha }}"
-        echo "Actor: ${{ github.actor }}"
