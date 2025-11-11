@@ -35,6 +35,7 @@ jobs:
           ###### End of Repository/Build Configurations ######
         env:
           BUILD_TARGET: static
+          IS_STATIC_EXPORT: true
           NEXT_PUBLIC_API_URL: "https://stealth-tinko-prod-app-1762804410.azurewebsites.net"
           NEXT_PUBLIC_APP_NAME: "STEALTH TINKO"
 
