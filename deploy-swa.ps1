@@ -6,7 +6,7 @@ Write-Host "=== Azure Static Web Apps Deployment ===" -ForegroundColor Green
 Write-Host ""
 
 # Configuration
-$resourceGroupName = "stealth-tinko-rg"
+$resourceGroupName = "stealth-tinko-prod-rg"
 $swaName = "stealth-tinko-swa"
 $location = "eastus"
 $sku = "Free"

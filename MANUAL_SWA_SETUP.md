@@ -16,7 +16,7 @@ Fill in these details:
 
 ### Basics Tab:
 - **Subscription**: Select your subscription
-- **Resource Group**: Select `stealth-tinko-rg` (or create new if doesn't exist)
+- **Resource Group**: Select `stealth-tinko-prod-rg`
 - **Name**: `stealth-tinko-swa`
 - **Plan Type**: `Free` (or Standard if you prefer)
 - **Azure Functions and staging locations**: `East US 2`
