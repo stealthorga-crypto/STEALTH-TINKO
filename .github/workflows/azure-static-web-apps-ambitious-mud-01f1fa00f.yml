@@ -31,7 +31,7 @@ jobs:
           app_location: "./tinko-console" # App source code path
           api_location: "/api" # Api source code path - optional
           output_location: "out" # Built app content directory - optional
-          app_build_command: "npm run build:swa" # Use our static export build command
+          app_build_command: "npm run build" # Use standard Next.js build command
           ###### End of Repository/Build Configurations ######
         env:
           BUILD_TARGET: static
