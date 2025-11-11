@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   
-  // Configure for both standalone (Docker) and static export (SWA)
-  output: process.env.BUILD_TARGET === 'static' ? 'export' : 'standalone',
+  // Configure for Azure Static Web Apps - always use static export
+  output: 'export',
   
   eslint: {
     ignoreDuringBuilds: true, // Temporarily bypass lint errors for builds
@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   // Static export configuration for Azure Static Web Apps
   trailingSlash: true,
   images: {
-    unoptimized: process.env.BUILD_TARGET === 'static' // Required for static export
+    unoptimized: true // Always unoptimized for static export
   },
   
   // Environment-specific configuration
