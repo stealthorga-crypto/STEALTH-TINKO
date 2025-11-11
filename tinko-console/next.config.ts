@@ -16,6 +16,14 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
+  
+  // Handle dynamic routes in static export mode
+  generateBuildId: async () => {
+    return 'azure-swa-build'
+  },
+  
+  // Export runnable
+  distDir: 'out'
 };
 
 module.exports = nextConfig;

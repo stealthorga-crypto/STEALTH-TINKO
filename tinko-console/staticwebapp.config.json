@@ -10,6 +10,30 @@
       "allowedRoles": ["anonymous"]
     },
     {
+      "route": "/pay/*/checkout/*",
+      "serve": "/index.html",
+      "statusCode": 200,
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/pay/retry/*/checkout/*",
+      "serve": "/index.html",
+      "statusCode": 200,
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/pay/ref/*/checkout/*",
+      "serve": "/index.html",
+      "statusCode": 200,
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/pay/*",
+      "serve": "/index.html",
+      "statusCode": 200,
+      "allowedRoles": ["anonymous"]
+    },
+    {
       "route": "/dashboard/*",
       "allowedRoles": ["authenticated"],
       "serve": "/index.html"

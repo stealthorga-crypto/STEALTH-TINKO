@@ -1,9 +1,6 @@
 // app/pay/[token]/page.tsx
 'use client';
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CreditCard, AlertCircle, Loader2 } from 'lucide-react';
