@@ -62,10 +62,10 @@ After creation (takes ~5 minutes):
 Add these secrets:
 
 ### Secret 1: Azure Deployment Token
-- **Name**: `AZURE_STATIC_WEB_APPS_API_TOKEN`
-- **Value**: The token from Step 4
+- **Name**: `AZURE_STATIC_WEB_APPS_API_TOKEN_AMBITIOUS_MUD_01F1FA00F`
+- **Value**: The token from Step 4 (get from Azure Portal)
 
-### Secret 2: JWT Secret
+### Secret 2: JWT Secret  
 - **Name**: `JWT_SECRET`
 - **Value**: `your-super-secret-jwt-key` (same as your backend)
 
@@ -81,15 +81,37 @@ The GitHub workflow should automatically trigger when you created the SWA, but y
 
 1. **Watch the GitHub Actions** progress
 2. **Check Azure Portal** for deployment status
-3. **Your app will be available at**: `https://[generated-name].azurestaticapps.net`
+3. **Your app will be available at**: `https://ambitious-mud-01f1fa00f.azurestaticapps.net`
 
 ## Expected GitHub Workflow File
 
-Azure should automatically create this file in your repo:
-`.github/workflows/azure-static-web-apps-[name].yml`
+Azure will automatically create this file in your repo:
+`.github/workflows/azure-static-web-apps-[generated-name].yml`
 
-If it doesn't match our configuration, you can replace it with our existing:
-`.github/workflows/azure-static-web-apps.yml`
+### Important Notes About the Generated Workflow:
+
+1. **Secret Name**: The generated workflow uses:
+   ```yaml
+   azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_<GENERATED_HOSTNAME> }}
+   ```
+   **You need to use this EXACT secret name** when adding to GitHub secrets (not the generic one we mentioned earlier)
+
+2. **App Location**: Azure generated `./tinko-console` but our setup uses `/tinko-console`
+   - Both will work, but keep note for troubleshooting
+
+3. **API Location**: Correctly set to `/api` ✅
+
+4. **Output Location**: Correctly set to `out` ✅
+
+### Option 1: Use Azure's Generated Workflow (Recommended)
+- **Advantage**: Automatically configured for your specific SWA
+- **Action**: Just add the secrets with the exact names from the workflow
+
+### Option 2: Replace with Our Optimized Workflow
+If you prefer our enhanced version with better error handling and environment variables:
+- **File**: `.github/workflows/azure-static-web-apps.yml`
+- **Action**: Delete Azure's file and use ours
+- **Note**: Update the secret name to match what Azure generated
 
 ## Troubleshooting
 
