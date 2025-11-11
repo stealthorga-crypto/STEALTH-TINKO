@@ -5,9 +5,23 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 
 # Authentication
-bcrypt==5.0.0
+bcrypt==4.1.2
 python-jose==3.5.0
 email-validator==2.1.0
+pydantic[email]>=2.0.0,<3.0.0  # For email validation in schemas
+
+# OAuth and Social Auth
+httpx==0.28.1  # For Google OAuth API calls
+authlib==1.3.0  # OAuth2 library
+google-auth==2.23.0  # Google OAuth verification
+google-auth-oauthlib==1.0.0  # Google OAuth flow
+
+# SMS and Communications
+twilio==9.4.0  # For SMS OTP
+python-multipart==0.0.9  # For form data handling
+
+# Redis for OTP storage
+redis==5.2.1
 
 # Observability
 sentry-sdk==2.19.2
@@ -15,11 +29,9 @@ structlog==25.1.0
 
 # Background Tasks & Retry Logic
 celery==5.4.0
-redis==5.2.1
 flower==2.0.1
 
 # Optional PSPs (install in environments that use them)
-twilio==9.4.0  # For SMS notifications
 # Using built-in HTTP client for Razorpay; official SDK optional:
 # razorpay==1.4.2
 
@@ -29,4 +41,3 @@ python-dotenv==1.0.1
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.25.2
-httpx==0.28.1

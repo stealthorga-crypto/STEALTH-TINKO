@@ -25,19 +25,105 @@ from ..auth_schemas import (
     ApiKeyCreateResponse,
     ApiKeyResponse,
 )
-# Import OTP-related modules  
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from services.secure_otp_service import SecureOTPService
-from schemas.auth import (
-    LoginOTPRequest,
-    OTPVerifyRequest,
-    OTPSentResponse,
-    LoginResponse,
-    UserInfo,
-    ErrorResponse,
+# Import enhanced auth service and schemas
+from app.services.auth_service import AuthService, get_auth_service
+from app.schemas.auth import (
+    UserCreate as NewUserCreate, GoogleLoginRequest, MobileLoginRequest,
+    VerifyOTPRequest, TokenResponse as NewTokenResponse, OTPResponse, MessageResponse
 )
+
+# ========== ENHANCED MOBILE OTP & GOOGLE OAUTH ==========
+
+@router.post("/signup-enhanced", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+async def signup_enhanced(
+    user_data: NewUserCreate,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Enhanced user registration with Gmail OAuth and Mobile OTP support
+    
+    - **email**: Optional email address (required if no mobile)
+    - **mobile_number**: Optional mobile number (required if no email) 
+    - **password**: Required for email signup, optional for mobile-only
+    - **full_name**: User's full name
+    """
+    try:
+        user = await auth_service.register_user(user_data, request)
+        
+        # Determine next steps based on auth method
+        if user_data.mobile_number and not user_data.password:
+            next_step = "verify_mobile_otp"
+            message = "User registered. Please verify the OTP sent to your mobile number."
+        else:
+            next_step = "email_verification"
+            message = "User registered successfully. Please check your email for verification."
+        
+        return MessageResponse(
+            message=message,
+            success=True,
+            details={
+                "user_id": user.id,
+                "auth_provider": user.auth_provider,
+                "next_step": next_step
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed"
+        )
+
+
+@router.post("/google-oauth", response_model=NewTokenResponse)
+async def google_oauth_login(
+    request_data: GoogleLoginRequest,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Enhanced Google OAuth login/registration
+    
+    - **access_token**: Google OAuth access token from frontend
+    """
+    return await auth_service.google_oauth_login(request_data)
+
+
+@router.post("/mobile/send-otp", response_model=OTPResponse)
+async def send_mobile_otp(
+    otp_request: MobileLoginRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Send OTP to mobile number for login/signup
+    
+    - **mobile_number**: Mobile number to send OTP
+    - **country_code**: Optional country code (defaults to +91)
+    """
+    # Format mobile number with country code if provided
+    mobile_number = otp_request.mobile_number
+    if not mobile_number.startswith('+') and otp_request.country_code:
+        mobile_number = otp_request.country_code + mobile_number
+    
+    return await auth_service.send_mobile_otp(mobile_number, request)
+
+
+@router.post("/mobile/verify-otp", response_model=NewTokenResponse)
+async def verify_mobile_otp_enhanced(
+    verify_request: VerifyOTPRequest,
+    request: Request,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Verify OTP and login/register user
+    
+    - **mobile_number**: Mobile number that received OTP
+    - **otp**: 6-digit OTP code
+    """
+    return await auth_service.verify_mobile_otp(verify_request, request)
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 

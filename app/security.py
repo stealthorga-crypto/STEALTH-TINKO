@@ -25,12 +25,19 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""
+    if not hashed_password:  # Handle None case
+        return False
+        
     password_bytes = plain_password.encode('utf-8')
     if len(password_bytes) > 72:
         password_bytes = password_bytes[:72]
     
     hashed_bytes = hashed_password.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
+
+
+# Aliases for consistency with auth service
+get_password_hash = hash_password
 
 
 def create_jwt(
@@ -59,6 +66,32 @@ def create_jwt(
     return jwt.encode(to_encode, secret, algorithm=algorithm)
 
 
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Create access token with default 30-minute expiry"""
+    secret = os.getenv('JWT_SECRET', 'dev-secret-change-in-production')
+    algorithm = os.getenv('JWT_ALGORITHM', 'HS256')
+    
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=30)
+    
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, secret, algorithm=algorithm)
+
+
+def create_refresh_token(data: Dict[str, Any]) -> str:
+    """Create refresh token with 7-day expiry"""
+    secret = os.getenv('JWT_SECRET', 'dev-secret-change-in-production')
+    algorithm = os.getenv('JWT_ALGORITHM', 'HS256')
+    
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=7)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, secret, algorithm=algorithm)
+
+
 def decode_jwt(
     token: str,
     secret: str = None,
@@ -82,3 +115,15 @@ def decode_jwt(
         return jwt.decode(token, secret, algorithms=[algorithm])
     except JWTError:
         return None
+
+
+def verify_token(token: str) -> Dict[str, Any]:
+    """Verify and decode JWT token, raise exception if invalid"""
+    secret = os.getenv('JWT_SECRET', 'dev-secret-change-in-production')
+    algorithm = os.getenv('JWT_ALGORITHM', 'HS256')
+    
+    try:
+        payload = jwt.decode(token, secret, algorithms=[algorithm])
+        return payload
+    except JWTError as e:
+        raise JWTError(f"Token verification failed: {str(e)}")
