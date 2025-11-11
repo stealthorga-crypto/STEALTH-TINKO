@@ -4,24 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-type RecoverByToken = { ok: boolean; data?: { transaction_ref?: string; status?: string } };
-
-export function RetryTokenCheckoutClient() {
-  const { token } = useParams<{ token: string }>();
+export function CheckoutRedirectPageClient() {
   const router = useRouter();
+  const { ref } = useParams<{ ref: string }>();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-
-  // Ensure component is mounted before running effects
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
-    if (!mounted || !token) return;
-    
-    const run = async () => {
+    const go = async () => {
       try {
         const allow = (process.env.NEXT_PUBLIC_ALLOW_RAZORPAY_CHECKOUT || "").toLowerCase();
         const isAllowed = ["1", "true", "yes", "on"].includes(allow);
@@ -30,12 +20,6 @@ export function RetryTokenCheckoutClient() {
           return;
         }
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const info = await api.get<RecoverByToken>(`/v1/recoveries/by_token/${token}`);
-        if (!info?.ok || !info?.data?.transaction_ref) {
-          setError("Invalid or expired link");
-          return;
-        }
-        const ref = info.data.transaction_ref;
         const order = await api.post<{ order_id: string; key_id: string; amount: number; currency: string }>(
           "/v1/payments/razorpay/orders-public",
           { ref }
@@ -71,6 +55,7 @@ export function RetryTokenCheckoutClient() {
         // @ts-ignore
         const rzp = new (window as any).Razorpay(opts);
         rzp.open();
+        return;
       } catch (e) {
         console.error(e);
         setError("Failed to start Razorpay Checkout");
@@ -78,20 +63,27 @@ export function RetryTokenCheckoutClient() {
         setLoading(false);
       }
     };
-    run();
-  }, [mounted, token]);
+    go();
+  }, [ref]);
 
-  if (!mounted) return <div className="p-6">Loading...</div>;
-  if (loading) return <div className="p-6">Preparing checkout…</div>;
-  if (error)
+  if (loading) {
     return (
       <div className="p-6">
-        <h1 className="text-xl font-semibold mb-2">Unable to launch Checkout</h1>
-        <p className="text-sm text-red-600 mb-4">{error}</p>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={() => router.refresh()}>
-          Try again
-        </button>
+        <p className="text-slate-700">Preparing checkout…</p>
       </div>
     );
-  return null;
+  }
+
+  return (
+    <div className="p-6">
+  <h1 className="text-xl font-semibold mb-2">Unable to launch Checkout</h1>
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      <button
+        className="px-4 py-2 bg-blue-600 text-white rounded"
+        onClick={() => router.refresh()}
+      >
+        Try again
+      </button>
+    </div>
+  );
 }

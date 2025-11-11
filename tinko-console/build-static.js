@@ -39,7 +39,7 @@ try {
   const nextBin = isWindows ? '.\\node_modules\\.bin\\next.cmd' : './node_modules/.bin/next';
   
   // Force standard build without turbopack
-  execSync(`${nextBin} build --debug`, { 
+  execSync(`${nextBin} build`, { 
     stdio: 'inherit',
     env: { 
       ...process.env, 
