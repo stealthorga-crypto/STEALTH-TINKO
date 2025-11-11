@@ -1,58 +1,425 @@
-# 🚀 STEALTH-TINKO Recovery Platform
+# STEALTH-TINKO 🚀
 
-[![CI Status](https://github.com/stealthorga-crypto/STEALTH-TINKO/actions/workflows/ci.yml/badge.svg)](https://github.com/stealthorga-crypto/STEALTH-TINKO/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+A high-performance FastAPI cryptocurrency operations platform deployed on Microsoft Azure Cloud.
 
-**STEALTH-TINKO** is an intelligent payment failure recovery platform that helps merchants automatically retry failed transactions and recover lost revenue through smart recovery workflows.
+[![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://stealth-tinko-prod-app-1762804410.azurewebsites.net)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
-## 📊 Project Status
+## 🌐 **Live Application**
 
-🚧 **DEVELOPMENT** - Core features working, NOT production-ready yet
+**🔗 Production URL**: https://stealth-tinko-prod-app-1762804410.azurewebsites.net
 
-- ✅ **31% Production Ready** (25/80 score)
-- ✅ Core payment recovery flow working
-- ⚠️ Missing: Real authentication, automated retry engine, production infrastructure
-- 📅 **Estimated MVP**: 10-12 weeks from now
+| Service | URL | Description |
+|---------|-----|-------------|
+| **API Docs** | [/docs](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/docs) | Interactive Swagger UI |
+| **ReDoc** | [/redoc](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/redoc) | Alternative API documentation |
+| **OpenAPI** | [/openapi.json](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/openapi.json) | API schema specification |
 
-See [APPLICATION_HEALTH_STATUS.txt](./APPLICATION_HEALTH_STATUS.txt) for detailed status.
+## ☁️ **Azure Architecture**
 
-## ✨ Features
+Following Azure deployment best practices, STEALTH-TINKO uses a cloud-native architecture:
 
-### ✅ Currently Working
-- Payment failure event ingestion via REST API
-- Automatic failure classification (6 categories)
-- Secure recovery link generation with expiring tokens
-- Customer-facing recovery pages
-- Stripe payment integration with webhook handling
-- Database models and migrations (Alembic)
-- Frontend dashboard (Next.js) with all UI pages
+### **🏗️ Infrastructure Components**
 
-### 🚧 In Development
-- Real authentication & RBAC
-- Automated retry scheduling (Celery)
-- Email/SMS notifications
-- Database-driven rules engine
-- Real-time analytics
-- Multi-tenancy support
+| Resource | Type | Configuration | Purpose |
+|----------|------|---------------|---------|
+| **App Service** | `Microsoft.Web/sites` | Python 3.11, Linux | FastAPI application hosting |
+| **Service Plan** | `Microsoft.Web/serverFarms` | Standard B1ms | Compute resources |
+| **PostgreSQL** | `Microsoft.DBforPostgreSQL/flexibleServers` | v15, Standard B1ms | Primary database |
+| **Resource Group** | `Microsoft.Resources/resourceGroups` | Central US | Resource organization |
 
-## 🏗️ Architecture
+### **📊 Resource Details**
+
+```yaml
+Resource Group: stealth-tinko-prod-rg
+Location: Central US
+Subscription: Azure subscription 1
+
+App Service:
+  Name: stealth-tinko-prod-app-1762804410
+  URL: stealth-tinko-prod-app-1762804410.azurewebsites.net
+  Runtime: PYTHON|3.11
+  Plan: stealth-tinko-prod-plan
+  State: Running
+
+Database:
+  Server: stealth-tinko-db-1762806172
+  FQDN: stealth-tinko-db-1762806172.postgres.database.azure.com
+  Type: PostgreSQL Flexible Server
+  Version: 15
+  Database: stealth_tinko
+  Admin: stealthadmin
+  State: Ready
+```
+
+## 🔧 **Technology Stack**
+
+### **Backend Framework**
+- **FastAPI**: Modern, fast web framework for building APIs
+- **Uvicorn**: ASGI server implementation
+- **Pydantic**: Data validation using Python type annotations
+- **SQLAlchemy**: Python SQL toolkit and ORM
+- **Alembic**: Database migration tool
+
+### **Database & Storage**
+- **Azure PostgreSQL Flexible Server**: Managed PostgreSQL service
+- **psycopg2**: PostgreSQL adapter for Python
+- **SSL/TLS**: Encrypted database connections
+
+### **Security & Authentication**
+- **JWT Tokens**: JSON Web Tokens for authentication
+- **Password Hashing**: Secure password storage
+- **CORS**: Cross-Origin Resource Sharing configuration
+- **HTTPS**: SSL/TLS encryption for all connections
+
+### **Cloud & DevOps**
+- **Azure App Service**: Platform-as-a-Service hosting
+- **Azure CLI**: Infrastructure management
+- **GitHub Actions**: CI/CD pipeline
+- **Docker**: Containerized deployment
+
+## 🚀 **Quick Start**
+
+### **Prerequisites**
+- Python 3.11+
+- Azure CLI
+- Git
+- PostgreSQL client (optional)
+
+### **Local Development Setup**
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/stealthorga-crypto/STEALTH-TINKO.git
+cd STEALTH-TINKO
+```
+
+2. **Create virtual environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or
+venv\Scripts\activate     # Windows
+```
+
+3. **Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Environment configuration**
+```bash
+# Create .env file
+cp .env.example .env
+
+# Configure environment variables
+DATABASE_URL=postgresql://user:password@localhost:5432/stealth_tinko
+JWT_SECRET_KEY=your-secret-key-here
+ENVIRONMENT=development
+```
+
+5. **Run the application**
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+6. **Access the application**
+- API: http://localhost:8000
+- Docs: http://localhost:8000/docs
+
+## ⚙️ **Configuration**
+
+### **Environment Variables**
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | ✅ | `postgresql://user:pass@host:5432/db` |
+| `JWT_SECRET_KEY` | JWT token signing secret | ✅ | `your-secret-key` |
+| `JWT_ALGORITHM` | JWT algorithm | ❌ | `HS256` (default) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time | ❌ | `30` (default) |
+| `ENVIRONMENT` | Application environment | ❌ | `production`/`development` |
+| `WEBSITES_PORT` | Azure port configuration | ✅ | `8000` |
+
+### **Azure App Service Settings**
+
+```bash
+# View current configuration
+az webapp config appsettings list \
+  --name stealth-tinko-prod-app-1762804410 \
+  --resource-group stealth-tinko-prod-rg
+
+# Update configuration
+az webapp config appsettings set \
+  --name stealth-tinko-prod-app-1762804410 \
+  --resource-group stealth-tinko-prod-rg \
+  --settings KEY=value
+```
+
+## 🔐 **Security Features**
+
+Following Azure security best practices:
+
+### **Application Security**
+- ✅ **JWT Authentication**: Stateless token-based authentication
+- ✅ **Password Hashing**: bcrypt with salt
+- ✅ **CORS Configuration**: Controlled cross-origin access
+- ✅ **Input Validation**: Pydantic model validation
+- ✅ **SQL Injection Protection**: SQLAlchemy ORM
+
+### **Infrastructure Security**
+- ✅ **HTTPS Enforcement**: SSL/TLS for all connections
+- ✅ **Database Encryption**: SSL-required PostgreSQL
+- ✅ **Network Security**: Azure-managed firewalls
+- ✅ **Secrets Management**: Azure App Service configuration
+- ✅ **Access Control**: Azure RBAC and resource-level permissions
+
+## 📊 **API Documentation**
+
+### **Authentication Endpoints**
+```http
+POST /auth/register    # User registration
+POST /auth/login       # User login
+POST /auth/refresh     # Token refresh
+GET  /auth/me          # Current user profile
+```
+
+### **Core API Endpoints**
+```http
+GET  /                 # Application root
+GET  /health          # Health check endpoint
+GET  /docs            # Swagger UI documentation
+GET  /redoc           # ReDoc documentation
+GET  /openapi.json    # OpenAPI schema
+```
+
+### **Sample API Calls**
+
+```bash
+# Health check
+curl https://stealth-tinko-prod-app-1762804410.azurewebsites.net/health
+
+# User registration
+curl -X POST https://stealth-tinko-prod-app-1762804410.azurewebsites.net/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "email": "user@example.com", "password": "securepass"}'
+
+# Login
+curl -X POST https://stealth-tinko-prod-app-1762804410.azurewebsites.net/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "password": "securepass"}'
+```
+
+## 🛠️ **Development Workflow**
+
+### **Local Development**
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run with auto-reload
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests
+pytest
+
+# Code formatting
+black app/
+isort app/
+
+# Type checking
+mypy app/
+```
+
+### **Database Management**
+```bash
+# Generate migration
+alembic revision --autogenerate -m "Description"
+
+# Apply migrations
+alembic upgrade head
+
+# Connect to Azure PostgreSQL
+psql "postgresql://stealthadmin@stealth-tinko-db-1762806172.postgres.database.azure.com:5432/stealth_tinko?sslmode=require"
+```
+
+## 🚀 **Deployment**
+
+### **Azure CLI Deployment**
+
+```bash
+# Login to Azure
+az login
+
+# Set subscription
+az account set --subscription "your-subscription-id"
+
+# Deploy application (if using ZIP deployment)
+az webapp deployment source config-zip \
+  --name stealth-tinko-prod-app-1762804410 \
+  --resource-group stealth-tinko-prod-rg \
+  --src app.zip
+```
+
+### **GitHub Actions CI/CD**
+
+```yaml
+name: Deploy to Azure App Service
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: stealth-tinko-prod-app-1762804410
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+```
+
+## 📈 **Monitoring & Management**
+
+### **Application Monitoring**
+
+```bash
+# View application logs
+az webapp log tail \
+  --name stealth-tinko-prod-app-1762804410 \
+  --resource-group stealth-tinko-prod-rg \
+  --provider application
+
+# Check application status
+az webapp show \
+  --name stealth-tinko-prod-app-1762804410 \
+  --resource-group stealth-tinko-prod-rg \
+  --query "{Name:name, State:state, URL:defaultHostName}"
+
+# View metrics
+az monitor metrics list \
+  --resource /subscriptions/{subscription}/resourceGroups/stealth-tinko-prod-rg/providers/Microsoft.Web/sites/stealth-tinko-prod-app-1762804410 \
+  --metric "Http2xx,Http4xx,Http5xx"
+```
+
+### **Database Monitoring**
+
+```bash
+# Check database status
+az postgres flexible-server show \
+  --resource-group stealth-tinko-prod-rg \
+  --name stealth-tinko-db-1762806172
+
+# View database metrics
+az monitor metrics list \
+  --resource /subscriptions/{subscription}/resourceGroups/stealth-tinko-prod-rg/providers/Microsoft.DBforPostgreSQL/flexibleServers/stealth-tinko-db-1762806172 \
+  --metric "cpu_percent,memory_percent,connections_active"
+```
+
+## 💰 **Cost Optimization**
+
+### **Current Resource Costs** (Estimated)
+- **App Service Plan (B1)**: ~$13/month
+- **PostgreSQL Flexible Server (B1ms)**: ~$12/month
+- **Total Estimated**: ~$25/month
+
+### **Cost Optimization Tips**
+- Use **Dev/Test** pricing for non-production environments
+- Enable **auto-shutdown** for development resources
+- Monitor usage with **Azure Cost Management**
+- Consider **Reserved Instances** for long-term deployments
+
+## 🔄 **Backup & Recovery**
+
+### **Database Backups**
+```bash
+# Manual backup
+pg_dump "postgresql://stealthadmin@stealth-tinko-db-1762806172.postgres.database.azure.com:5432/stealth_tinko?sslmode=require" > backup.sql
+
+# Restore from backup
+psql "postgresql://stealthadmin@stealth-tinko-db-1762806172.postgres.database.azure.com:5432/stealth_tinko?sslmode=require" < backup.sql
+```
+
+### **Application Recovery**
+- Azure App Service provides automatic backup capabilities
+- Source code is stored in GitHub for version control
+- Configuration is managed through Azure CLI/Portal
+
+## 🤝 **Contributing**
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Make** changes and test locally
+4. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+5. **Push** to the branch (`git push origin feature/amazing-feature`)
+6. **Open** a Pull Request
+
+### **Development Guidelines**
+- Follow **PEP 8** Python style guidelines
+- Write **unit tests** for new features
+- Update **documentation** for API changes
+- Use **type hints** for better code clarity
+
+## 📋 **Project Structure**
 
 ```
 STEALTH-TINKO/
-├── app/                    # FastAPI backend
-│   ├── analytics/          # Analytics modules
-│   ├── config/             # Configuration
-│   ├── psp/               # Payment Service Provider integrations
-│   ├── routers/           # API endpoints
-│   ├── services/          # Business logic
-│   └── tasks/             # Background tasks
-├── tinko-console/         # Next.js frontend
-├── db/                    # Database schemas
-├── migrations/            # Alembic migrations
-├── tests/                 # Test suite
-└── docker-compose.yml     # Local development setup
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI application entry point
+│   ├── db.py                # Database configuration
+│   ├── models/              # SQLAlchemy models
+│   ├── schemas/             # Pydantic schemas
+│   ├── routers/             # API route handlers
+│   ├── services/            # Business logic
+│   └── utils/               # Utility functions
+├── tests/                   # Test files
+├── alembic/                 # Database migrations
+├── requirements.txt         # Python dependencies
+├── requirements-dev.txt     # Development dependencies
+├── .env.example            # Environment variables template
+├── .gitignore              # Git ignore rules
+├── Dockerfile              # Container configuration
+└── README.md               # This file
 ```
+
+## 📞 **Support & Contact**
+
+### **Technical Support**
+- **Issues**: [GitHub Issues](https://github.com/stealthorga-crypto/STEALTH-TINKO/issues)
+- **Documentation**: [Azure App Service Docs](https://docs.microsoft.com/en-us/azure/app-service/)
+- **Community**: [FastAPI Community](https://github.com/tiangolo/fastapi/discussions)
+
+### **Azure Resources**
+- **Azure Portal**: [portal.azure.com](https://portal.azure.com)
+- **Azure CLI Docs**: [Azure CLI Reference](https://docs.microsoft.com/en-us/cli/azure/)
+- **Cost Management**: [Azure Cost Management](https://portal.azure.com/#blade/Microsoft_Azure_CostManagement)
+
+## 📄 **License**
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 **Acknowledgments**
+
+- **Microsoft Azure** for cloud infrastructure
+- **FastAPI** for the amazing web framework
+- **PostgreSQL** for reliable database services
+- **GitHub** for version control and collaboration
+
+---
+
+**🚀 Powered by Microsoft Azure | FastAPI | PostgreSQL | Python 3.11**
+
+*Last Updated: November 2025*
 
 ## 🚀 Quick Start
 
