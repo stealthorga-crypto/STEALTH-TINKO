@@ -1,0 +1,24 @@
+{
+  "name": "swa-api",
+  "version": "1.0.0",
+  "description": "Azure Static Web Apps API Functions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "keywords": [
+    "azure",
+    "static-web-apps",
+    "serverless",
+    "functions"
+  ],
+  "author": "STEALTH-TINKO",
+  "license": "MIT"
+}

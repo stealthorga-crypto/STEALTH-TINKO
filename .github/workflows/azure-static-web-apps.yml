@@ -1,0 +1,83 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tinko-console/**'
+      - 'api/**'
+      - '.github/workflows/azure-static-web-apps.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+    paths:
+      - 'tinko-console/**'
+      - 'api/**'
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'tinko-console/package-lock.json'
+
+      - name: Install frontend dependencies
+        run: |
+          cd tinko-console
+          npm ci
+
+      - name: Install API dependencies
+        run: |
+          cd api
+          npm ci
+
+      - name: Build Application
+        run: |
+          cd tinko-console
+          npm run build:swa
+
+      - name: Deploy to Azure Static Web Apps
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
+          ###### Repository/Build Configurations ######
+          app_location: "/tinko-console" # App source code path
+          api_location: "/api" # Api source code path - optional
+          output_location: "out" # Built app content directory - static export output
+          ###### Build Configuration ######
+          app_build_command: "npm run build:swa"
+          api_build_command: "npm install"
+          ###### Environment Variables ######
+        env:
+          NEXT_PUBLIC_API_URL: "https://stealth-tinko-prod-app-1762804410.azurewebsites.net"
+          NEXT_PUBLIC_APP_NAME: "STEALTH TINKO"
+          BACKEND_BASE_URL: "https://stealth-tinko-prod-app-1762804410.azurewebsites.net"
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "close"

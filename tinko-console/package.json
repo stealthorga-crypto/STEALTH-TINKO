@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:static": "BUILD_TARGET=static next build",
+    "build:swa": "BUILD_TARGET=static next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit"
