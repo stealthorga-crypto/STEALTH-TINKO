@@ -3,8 +3,9 @@ Configuration settings for STEALTH-TINKO
 Handles environment variables and application settings
 """
 import os
-from typing import Optional
-from pydantic import BaseSettings, validator
+from typing import Optional, List
+from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -29,16 +30,17 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: Optional[str] = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET: Optional[str] = os.getenv("GOOGLE_CLIENT_SECRET")
     
-    # Twilio SMS
+    # Twilio SMS & Verify Service
     TWILIO_ACCOUNT_SID: Optional[str] = os.getenv("TWILIO_ACCOUNT_SID")
     TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
     TWILIO_PHONE_NUMBER: Optional[str] = os.getenv("TWILIO_PHONE_NUMBER")
+    TWILIO_VERIFY_SERVICE_SID: Optional[str] = os.getenv("TWILIO_VERIFY_SERVICE_SID")
     
     # Redis (for OTP storage)
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
     # CORS
-    ALLOWED_ORIGINS: list = [
+    ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
         "https://stealth-tinko-prod-app-1762804410.azurewebsites.net"
@@ -61,7 +63,8 @@ class Settings(BaseSettings):
     # Security
     BCRYPT_ROUNDS: int = 12
     
-    @validator("ALLOWED_ORIGINS")
+    @field_validator("ALLOWED_ORIGINS")
+    @classmethod
     def assemble_cors_origins(cls, v):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
@@ -70,6 +73,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra fields from .env file
 
 
 # Create settings instance

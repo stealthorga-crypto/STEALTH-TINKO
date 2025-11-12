@@ -22,6 +22,7 @@ from app.security import (
     get_password_hash, verify_token
 )
 from app.config import settings
+from app.services.sms_service import send_otp_sms, verify_otp_sms
 import logging
 
 logger = logging.getLogger(__name__)
@@ -185,15 +186,23 @@ class AuthService:
             )
     
     async def send_mobile_otp(self, mobile_number: str, request: Request) -> OTPResponse:
-        """Send OTP to mobile number with rate limiting"""
+        """Send OTP to mobile number using Twilio Verify Service"""
         try:
             ip_address = request.client.host
             
             # Rate limiting check
             await self._check_otp_rate_limit(mobile_number, ip_address)
             
-            # Generate 6-digit OTP
-            otp_code = self._generate_otp()
+            # Send OTP via enhanced SMS service (Twilio Verify or fallback)
+            sms_result = await send_otp_sms(mobile_number, template_type="signup")
+            
+            if not sms_result["success"]:
+                logger.error(f"SMS service failed for {mobile_number}: {sms_result.get('error')}")
+                # Continue with database logging even if SMS fails
+            
+            # For Twilio Verify, we don't generate our own OTP
+            # For basic SMS or development mode, we may get an OTP code back
+            otp_code = sms_result.get("otp_code", "******")  # Mask for logging
             
             # Set expiration time (5 minutes)
             expires_at = datetime.utcnow() + timedelta(minutes=5)
@@ -206,10 +215,10 @@ class AuthService:
                 )
             ).update({"is_used": True})
             
-            # Create new OTP record
+            # Create new OTP record (for tracking purposes)
             mobile_otp = MobileOTP(
                 mobile_number=mobile_number,
-                otp_code=otp_code,
+                otp_code="VERIFY" if sms_result.get("provider") == "twilio_verify" else otp_code,
                 expires_at=expires_at,
                 ip_address=ip_address,
                 user_agent=request.headers.get("user-agent", "")
@@ -223,19 +232,16 @@ class AuthService:
                 ip_address=ip_address,
                 user_agent=request.headers.get("user-agent", ""),
                 action="request_otp",
-                success=True
+                success=sms_result["success"]
             )
             self.db.add(security_log)
             
             self.db.commit()
             
-            # Send SMS
-            await self._send_sms(mobile_number, f"Your TINKO login code: {otp_code}. Valid for 5 minutes. Do not share this code.")
-            
-            logger.info(f"OTP sent to {mobile_number}")
+            logger.info(f"OTP sent to {mobile_number} via {sms_result.get('provider', 'unknown')}")
             
             return OTPResponse(
-                message="OTP sent successfully",
+                message=sms_result.get("message", "OTP sent successfully"),
                 expires_in=300,
                 mobile_number=mobile_number,
                 can_resend_after=60
@@ -251,59 +257,75 @@ class AuthService:
             )
     
     async def verify_mobile_otp(self, request: VerifyOTPRequest, req: Request) -> TokenResponse:
-        """Verify OTP and login user"""
+        """Verify OTP using Twilio Verify Service or fallback verification"""
         try:
             ip_address = req.client.host
             
-            # Find valid OTP
-            otp_record = self.db.query(MobileOTP).filter(
-                and_(
-                    MobileOTP.mobile_number == request.mobile_number,
-                    MobileOTP.otp_code == request.otp,
-                    MobileOTP.is_used == False
-                )
-            ).first()
+            # First try Twilio Verify Service verification
+            verify_result = await verify_otp_sms(request.mobile_number, request.otp)
             
-            if not otp_record:
-                # Log failed attempt
-                security_log = OTPSecurityLog(
-                    email=request.mobile_number,
-                    ip_address=ip_address,
-                    user_agent=req.headers.get("user-agent", ""),
-                    action="verify_otp",
-                    success=False
-                )
-                self.db.add(security_log)
-                self.db.commit()
+            if verify_result["success"] and verify_result.get("valid"):
+                # Twilio Verify succeeded
+                logger.info(f"OTP verified via {verify_result.get('provider')} for {request.mobile_number}")
+                verification_method = verify_result.get('provider', 'twilio_verify')
+            else:
+                # Fallback to database verification for development/legacy
+                logger.info(f"Twilio Verify result: {verify_result}, checking database fallback")
                 
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid or expired OTP"
-                )
-            
-            # Check if OTP is expired
-            if otp_record.is_expired():
+                # Find valid OTP in database
+                otp_record = self.db.query(MobileOTP).filter(
+                    and_(
+                        MobileOTP.mobile_number == request.mobile_number,
+                        MobileOTP.otp_code == request.otp,
+                        MobileOTP.is_used == False
+                    )
+                ).first()
+                
+                if not otp_record:
+                    # Log failed attempt
+                    security_log = OTPSecurityLog(
+                        email=request.mobile_number,
+                        ip_address=ip_address,
+                        user_agent=req.headers.get("user-agent", ""),
+                        action="verify_otp",
+                        success=False
+                    )
+                    self.db.add(security_log)
+                    self.db.commit()
+                    
+                    error_detail = "Invalid or expired OTP"
+                    if verify_result.get("message"):
+                        error_detail = verify_result["message"]
+                    
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=error_detail
+                    )
+                
+                # Check if OTP is expired
+                if otp_record.is_expired():
+                    otp_record.is_used = True
+                    self.db.commit()
+                    
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="OTP has expired"
+                    )
+                
+                # Check attempt count
+                otp_record.attempts += 1
+                if otp_record.attempts > 3:
+                    otp_record.is_used = True
+                    self.db.commit()
+                    
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Too many invalid attempts"
+                    )
+                
+                # Mark OTP as used
                 otp_record.is_used = True
-                self.db.commit()
-                
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="OTP has expired"
-                )
-            
-            # Check attempt count
-            otp_record.attempts += 1
-            if otp_record.attempts > 3:
-                otp_record.is_used = True
-                self.db.commit()
-                
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Too many invalid attempts"
-                )
-            
-            # Mark OTP as used
-            otp_record.is_used = True
+                verification_method = "database_fallback"
             
             # Find or create user
             user = self.db.query(User).filter(
@@ -344,7 +366,7 @@ class AuthService:
             self.db.commit()
             self.db.refresh(user)
             
-            logger.info(f"OTP verified successfully for user {user.id}")
+            logger.info(f"OTP verified successfully for user {user.id} via {verification_method}")
             
             # Generate tokens
             access_token = create_access_token(

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers/query-client-provider";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
   title: "Tinko Recovery",
@@ -11,7 +12,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <AuthProvider>
+          <Providers>{children}</Providers>
+        </AuthProvider>
       </body>
     </html>
   );

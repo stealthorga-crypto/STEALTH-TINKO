@@ -61,15 +61,11 @@ export function middleware(request: NextRequest) {
 
   // Check protected routes
   if (isProtectedRoute(pathname)) {
-    // Get session token from cookie
-    const sessionToken =
-      request.cookies.get("next-auth.session-token")?.value ||
-      request.cookies.get("__Secure-next-auth.session-token")?.value ||
-      request.cookies.get("authjs.session-token")?.value ||
-      request.cookies.get("__Secure-authjs.session-token")?.value;
+    // Get auth token from cookie - our auth system stores token in a custom cookie
+    const authToken = request.cookies.get("auth_token")?.value;
 
-    // Redirect to signin if no session
-    if (!sessionToken) {
+    // Redirect to signin if no token
+    if (!authToken) {
       const signinUrl = new URL("/auth/signin", request.url);
       signinUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signinUrl);
