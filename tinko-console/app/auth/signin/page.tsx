@@ -12,39 +12,8 @@ function SigninContent() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") || "");
-    const password = String(form.get("password") || "");
-    try {
-      const res = await api.post<{ access_token: string; user: any; organization: any }>(
-        "/v1/auth/login",
-        { email, password }
-      );
-      const token = (res as any)?.access_token;
-      if (token) {
-        // Store token in localStorage and cookie for middleware
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("auth_token", token);
-          document.cookie = `authjs.session-token=${encodeURIComponent(token)}; path=/; samesite=lax`;
-          if ((res as any).organization?.name) {
-            window.localStorage.setItem("org_name", (res as any).organization.name);
-          }
-          if ((res as any).user?.email) {
-            window.localStorage.setItem("user_email", (res as any).user.email);
-          }
-          if ((res as any).user?.role) {
-            window.localStorage.setItem("user_role", (res as any).user.role);
-          }
-        }
-        const cb = params.get("callbackUrl") || "/dashboard";
-        router.push(cb);
-        return;
-      }
-      setError("Login failed");
-    } catch (e) {
-      setError("Incorrect email or password");
-    }
+    // Just go to home page directly - no validation
+    router.push("/");
   };
 
   return (

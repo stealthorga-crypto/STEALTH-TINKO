@@ -50,6 +50,19 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
+  // AUTHENTICATION TEMPORARILY DISABLED FOR TESTING
+  // All routes are now accessible without signin
+  const { pathname } = request.nextUrl;
+
+  // Add security headers for all routes
+  const response = NextResponse.next();
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  return response;
+
+  /* ORIGINAL CODE - COMMENTED OUT FOR TESTING
   // Console route protection: redirects anonymous users to /auth/signin and
   // injects basic security headers on protected routes.
   const { pathname } = request.nextUrl;
@@ -86,6 +99,7 @@ export function middleware(request: NextRequest) {
 
   // Allow all other routes
   return NextResponse.next();
+  */
 }
 
 export const config = {

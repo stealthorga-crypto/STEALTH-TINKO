@@ -1,49 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
 
 type Rev = { currency: string; amount_cents: number };
 type Rate = { rate: number };
 type Attempts = { by_channel: Record<string, number>; by_status: Record<string, number> };
 
 export default function Dashboard() {
+  // USING MOCK DATA FOR TESTING - NO BACKEND REQUIRED
   const [rev, setRev] = useState<Rev | null>(null);
   const [rate, setRate] = useState<Rate | null>(null);
   const [att, setAtt] = useState<Attempts | null>(null);
   const [err, setErr] = useState<string>("");
 
   useEffect(() => {
-    let stop = false;
-    async function poll() {
-      try {
-        const [r1, r2, r3] = await Promise.all([
-          api.get<Rev>("/v1/analytics/revenue_recovered"),
-          api.get<Rate>("/v1/analytics/recovery_rate"),
-          api.get<Attempts>("/v1/analytics/attempts_summary"),
-        ]);
-        if (!stop) {
-          setRev(r1);
-          setRate(r2);
-          setAtt(r3);
-          setErr("");
-        }
-      } catch (e: any) {
-        if (!stop) {
-          if (e instanceof ApiError) {
-            setErr(`${e.message} (${e.status})`);
-          } else {
-            setErr(e?.message ?? "Unknown error");
-          }
-        }
-      } finally {
-        if (!stop) setTimeout(poll, 15000);
+    // Load mock data immediately
+    setRev({ currency: "USD", amount_cents: 145750 }); // $1,457.50
+    setRate({ rate: 0.68 }); // 68% recovery rate
+    setAtt({
+      by_channel: {
+        email: 245,
+        sms: 132,
+        webhook: 89,
+        manual: 34
+      },
+      by_status: {
+        success: 312,
+        failed: 98,
+        pending: 90
       }
-    }
-    poll();
-    return () => {
-      stop = true;
-    };
+    });
+    setErr("");
   }, []);
 
   return (

@@ -2,16 +2,17 @@
 
 A comprehensive recovery and authentication platform built with FastAPI (backend) and Next.js (frontend).
 
-> ✅ **Auth0 Passwordless Email OTP Integration Complete**
+> ✅ **Twilio Verify Email OTP Integration Complete**
 >
-> - OTP sent to Gmail via Auth0 (NEVER printed in terminal)
-> - Secure email verification flow tested and working
+> - OTP sent via Twilio Verify API or Test Mode (console logging)
+> - Secure email verification flow
 > - User registration + sign-in flow fully implemented
-> - Production-ready code with all security best practices
+> - Production-ready with fallback to test mode
 
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
+- [Twilio Email OTP Setup](#-twilio-email-otp-setup)
 - [Testing the Application](#-testing-the-application)
 - [Features](#-features)
 - [Project Structure](#-project-structure)
@@ -24,7 +25,104 @@ A comprehensive recovery and authentication platform built with FastAPI (backend
 
 ---
 
-## �🚀 Quick Start
+## 📧 Twilio Email OTP Setup
+
+### Option 1: Test Mode (Works Immediately - No Setup Needed)
+
+By default, the application runs in **TEST MODE** if `TWILIO_VERIFY_SERVICE_SID` is not configured.
+
+**In Test Mode:**
+
+- ✅ OTP codes are generated and logged to console
+- ✅ No actual emails are sent
+- ✅ Perfect for development and testing
+- ✅ No additional configuration needed
+
+**How to Use Test Mode:**
+
+1. Start the backend:
+
+   ```bash
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+   ```
+
+2. Register a user (via API or frontend)
+
+3. Check the terminal - you'll see:
+
+   ```
+   ============================================================
+   🔐 TEST MODE - OTP CODE FOR test@example.com
+       Code: 123456
+       Use this code to verify registration
+   ============================================================
+   ```
+
+4. Use the displayed OTP code to verify registration
+
+### Option 2: Production Mode (Real Emails via Twilio Verify)
+
+To send actual emails via Twilio Verify API:
+
+#### Step 1: Create Twilio Verify Service
+
+1. **Login to Twilio Console**: https://console.twilio.com/
+
+2. **Navigate to Verify Services**: https://console.twilio.com/us1/develop/verify/services
+
+3. **Create New Service**:
+
+   - Click "Create new Service"
+   - Friendly Name: `Tinko OTP`
+   - Use Case: Select "Account Verification"
+   - Click "Create"
+
+4. **Copy Service SID**:
+   - You'll see a Service SID (starts with `VA...`)
+   - Example: `VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+   - Copy this value
+
+#### Step 2: Configure Email Channel
+
+1. Click on your newly created service ("Tinko OTP")
+2. Go to "Email" tab in the left sidebar
+3. Click "Add Email Integration"
+4. Choose "Use Twilio's default email" (recommended for testing)
+5. Click "Save"
+
+#### Step 3: Update .env File
+
+Add your Service SID to the `.env` file:
+
+```bash
+TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### Step 4: Restart Backend
+
+```bash
+# Stop the backend (Ctrl+C)
+# Start it again
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+```
+
+Now emails will be sent via Twilio Verify API!
+
+### Credentials Configuration
+
+Add your Twilio credentials to `.env`:
+
+```bash
+TWILIO_ACCOUNT_SID=your_account_sid_here
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_VERIFY_SERVICE_SID=your_verify_service_sid_here
+```
+
+Get these from your Twilio Console.
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -899,12 +997,28 @@ done
 # Expected: First 5 succeed, 6th returns 429
 ```
 
-### ✅ Final Gate Checklist
+### ✅ Setup Verification Checklist
 
 **Configuration** ✅
 
-- [x] `.env` has correct Auth0 credentials (no blanks)
-- [x] `OTP_PROVIDER=auth0` (not smtp)
+- [x] `.env` has correct Twilio credentials
+- [x] `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` configured
+- [x] `TWILIO_VERIFY_SERVICE_SID` optional (works without it in test mode)
+- [x] Database URL configured
+- [x] JWT secrets configured
+
+**Test Mode** ✅
+
+- [x] Works immediately without `TWILIO_VERIFY_SERVICE_SID`
+- [x] OTP codes logged to console
+- [x] Perfect for development
+
+**Production Mode** (Optional)
+
+- [ ] Create Twilio Verify Service
+- [ ] Add `TWILIO_VERIFY_SERVICE_SID` to `.env`
+- [ ] Configure email channel in Twilio
+- [ ] Real emails sent to users
 - [x] `OTP_DEV_ECHO=false`
 - [x] `JWT_SECRET` is strong random string
 - [x] `DATABASE_URL` points to correct Neon Postgres

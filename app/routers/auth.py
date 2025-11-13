@@ -24,11 +24,14 @@ from ..auth_schemas import (
     VerifyResponse,
 )
 from ..services.email_service import send_email
-from ..services.auth0_otp_service import get_auth0_otp_service
+from ..services.twilio_otp_service import TwilioOTPService
 from ..logging_config import get_logger
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
+
+# Initialize Twilio OTP service
+twilio_otp_service = TwilioOTPService()
 
 
 def slugify(text: str) -> str:
@@ -130,12 +133,11 @@ def _create_or_get_org(db: Session, name: str, slug_hint: str | None) -> Organiz
 
 @router.post("/register/start", response_model=RegisterStartResponse, status_code=status.HTTP_200_OK)
 async def register_start(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Start registration by triggering Auth0 Passwordless Email OTP.
+    """Start registration by triggering Twilio Email OTP.
 
     Frontend flow: collect email, password, full_name, org_name; call this endpoint; then prompt for OTP.
     """
     logger = get_logger(__name__)
-    otp_provider = os.getenv("OTP_PROVIDER", "smtp")
     
     # Validate input
     if not user_data.org_name:
@@ -146,109 +148,91 @@ async def register_start(user_data: UserCreate, db: Session = Depends(get_db)):
     if existing_user and existing_user.is_active:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Use Auth0 Passwordless OTP
-    if otp_provider == "auth0":
-        try:
-            auth0_service = get_auth0_otp_service()
-            success = await auth0_service.start(user_data.email)
-            
-            if not success:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to send verification email. Please try again."
-                )
-            
-            logger.info("auth0_otp_triggered", email=user_data.email)
-            return RegisterStartResponse(ok=True, message="OTP sent to email")
-            
-        except Exception as e:
-            logger.error("auth0_otp_error", email=user_data.email, error=str(e))
+    # Use Twilio OTP
+    try:
+        success = await twilio_otp_service.start(user_data.email)
+        
+        if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send verification email. Please try again."
             )
-    else:
-        # Fallback to SMTP (legacy - should not be used in production)
+        
+        logger.info("twilio_otp_triggered", email=user_data.email)
+        return RegisterStartResponse(ok=True, message="OTP sent to email")
+            
+    except Exception as e:
+        logger.error("twilio_otp_error", email=user_data.email, error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="SMTP OTP provider is deprecated. Use OTP_PROVIDER=auth0"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email. Please try again."
         )
 
 
 @router.post("/register/verify", response_model=VerifyResponse)
 async def register_verify(body: VerifyRequest, db: Session = Depends(get_db)):
-    """Verify OTP with Auth0 and create/activate user in database."""
+    """Verify OTP with Twilio and create/activate user in database."""
     logger = get_logger(__name__)
-    otp_provider = os.getenv("OTP_PROVIDER", "smtp")
     
-    if otp_provider == "auth0":
-        try:
-            # Verify OTP with Auth0
-            auth0_service = get_auth0_otp_service()
-            user_info = await auth0_service.verify(body.email, body.code)
-            
-            if not user_info or not user_info.get("email_verified"):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid or expired verification code"
-                )
-            
-            # Check if user already exists
-            existing_user = db.query(User).filter(User.email == body.email).first()
-            
-            if existing_user and existing_user.is_active:
-                # User already registered and verified
-                logger.info("duplicate_registration_attempt", email=body.email)
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="User already registered. Please sign in instead."
-                )
-            
-            if existing_user:
-                # User exists but not active, update and activate
-                user = existing_user
-                user.is_active = True
-                user.hashed_password = hash_password(body.password)  # Update password
-                user.full_name = body.full_name  # Update name
-                logger.info("user_reactivated", email=body.email, user_id=user.id)
-            else:
-                # Create new organization
-                organization = _create_or_get_org(db, body.org_name, body.org_slug)
-                
-                # Create new user
-                hashed_pw = hash_password(body.password)
-                user = User(
-                    email=body.email,
-                    hashed_password=hashed_pw,
-                    full_name=body.full_name,
-                    role="admin",
-                    org_id=organization.id,
-                    is_active=True,  # Verified by Auth0
-                )
-                db.add(user)
-                logger.info("new_user_created", email=body.email)
-            
-            db.commit()
-            db.refresh(user)
-            logger.info("user_verified_and_created", email=body.email, user_id=user.id)
-            
-            return VerifyResponse(ok=True, message="Email verified. You can now sign in.")
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("auth0_verify_error", email=body.email, error=str(e))
+    try:
+        # Verify OTP with Twilio
+        user_info = await twilio_otp_service.verify(body.email, body.code)
+        
+        if not user_info or not user_info.get("email_verified"):
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Verification failed. Please try again."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification code"
             )
-    else:
+        
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == body.email).first()
+        
+        if existing_user and existing_user.is_active:
+            # User already registered and verified
+            logger.info("duplicate_registration_attempt", email=body.email)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User already registered. Please sign in instead."
+            )
+        
+        if existing_user:
+            # User exists but not active, update and activate
+            user = existing_user
+            user.is_active = True
+            user.hashed_password = hash_password(body.password)  # Update password
+            user.full_name = body.full_name  # Update name
+            logger.info("user_reactivated", email=body.email, user_id=user.id)
+        else:
+            # Create new organization
+            organization = _create_or_get_org(db, body.org_name, body.org_slug)
+            
+            # Create new user
+            hashed_pw = hash_password(body.password)
+            user = User(
+                email=body.email,
+                hashed_password=hashed_pw,
+                full_name=body.full_name,
+                role="admin",
+                org_id=organization.id,
+                is_active=True,  # Verified by Twilio
+            )
+            db.add(user)
+            logger.info("new_user_created", email=body.email)
+        
+        db.commit()
+        db.refresh(user)
+        logger.info("user_verified_and_created", email=body.email, user_id=user.id)
+        
+        return VerifyResponse(ok=True, message="Email verified. You can now sign in.")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("twilio_verify_error", email=body.email, error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="SMTP OTP provider is deprecated. Use OTP_PROVIDER=auth0"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Verification failed. Please try again."
         )
-
-
 @router.post("/login", response_model=TokenResponse)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """

@@ -19,7 +19,7 @@ redis==5.2.1
 flower==2.0.1
 
 # Optional PSPs (install in environments that use them)
-twilio==9.4.0  # For SMS notifications
+twilio==9.4.0  # For Twilio Verify API (Email OTP) and SMS notifications
 # Using built-in HTTP client for Razorpay; official SDK optional:
 # razorpay==1.4.2
 
