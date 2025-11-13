@@ -21,8 +21,8 @@ async def test_twilio_verify():
     # Check if Twilio Verify is available
     print(f"Twilio Verify Available: {is_verify_available()}")
     
-    # Test phone number (use your real number for testing)
-    test_phone = "+1234567890"  # Replace with your real number for testing
+    # Test phone number (using your real number for testing)
+    test_phone = "+919900015844"  # Your real Indian number
     
     print(f"\n📱 Testing OTP send to: {test_phone}")
     
