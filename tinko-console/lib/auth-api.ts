@@ -194,7 +194,7 @@ export class AuthAPI {
         });
       }
     } catch (error) {
-      console.log('Logout call failed, but clearing local session anyway');
+      // Logout call failed, but clearing local session anyway
     }
   }
 

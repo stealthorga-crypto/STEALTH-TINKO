@@ -196,10 +196,9 @@ def _mount(router_mod_path: str, attr: str = "router"):
         mod = __import__(router_mod_path, fromlist=[attr])
         router = getattr(mod, attr)
         app.include_router(router)
-        # Avoid non-ASCII symbols that can break Windows codepages
-        print(f"Mounted {router_mod_path}.{attr}")
+        logger.info(f"Mounted router: {router_mod_path}.{attr}")
     except Exception as e:
-        print(f"Failed to mount {router_mod_path}: {e}")
+        logger.error(f"Failed to mount router {router_mod_path}: {e}")
         traceback.print_exc()
 
 # IMPORTANT: use absolute paths from root app

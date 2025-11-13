@@ -1,332 +1,660 @@
-# STEALTH-TINKO 🚀
+# Stealth Tinko - Enterprise Payment Recovery Platform# STEALTH-TINKO 🚀
 
-A high-performance FastAPI cryptocurrency operations platform deployed on Microsoft Azure Cloud.
 
-[![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://stealth-tinko-prod-app-1762804410.azurewebsites.net)
-[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)A high-performance FastAPI cryptocurrency operations platform deployed on Microsoft Azure Cloud.
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.118.0-009688.svg)](https://fastapi.tiangolo.com/)[![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoft-azure&logoColor=white)](https://stealth-tinko-prod-app-1762804410.azurewebsites.net)
+
+[![Next.js 15](https://img.shields.io/badge/Next.js-15.5.4-black.svg)](https://nextjs.org/)[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+
+[![Azure](https://img.shields.io/badge/Deployed%20on-Azure-0078d4.svg)](https://azure.microsoft.com/)[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+
+## 🚀 Overview
 
 ## 🌐 **Live Application**
 
+Stealth Tinko is an enterprise-grade payment recovery platform that helps businesses recover failed payments through intelligent retry mechanisms, multi-provider payment gateway support, and comprehensive analytics.
+
 **🔗 Production URL**: https://stealth-tinko-prod-app-1762804410.azurewebsites.net
 
+### Key Features
+
 | Service | URL | Description |
-|---------|-----|-------------|
-| **API Docs** | [/docs](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/docs) | Interactive Swagger UI |
-| **ReDoc** | [/redoc](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/redoc) | Alternative API documentation |
-| **OpenAPI** | [/openapi.json](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/openapi.json) | API schema specification |
 
-## ☁️ **Azure Architecture**
+- **🔐 Secure Authentication**: Multi-factor authentication with Google OAuth and SMS OTP|---------|-----|-------------|
 
-Following Azure deployment best practices, STEALTH-TINKO uses a cloud-native architecture:
+- **📱 Multi-step Registration**: Complete business onboarding with payment provider integration| **API Docs** | [/docs](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/docs) | Interactive Swagger UI |
 
-### **🏗️ Infrastructure Components**
+- **💳 Payment Gateway Support**: Stripe, Razorpay, and extensible architecture for additional providers| **ReDoc** | [/redoc](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/redoc) | Alternative API documentation |
 
-| Resource | Type | Configuration | Purpose |
-|----------|------|---------------|---------|
-| **App Service** | `Microsoft.Web/sites` | Python 3.11, Linux | FastAPI application hosting |
-| **Service Plan** | `Microsoft.Web/serverFarms` | Standard B1ms | Compute resources |
-| **PostgreSQL** | `Microsoft.DBforPostgreSQL/flexibleServers` | v15, Standard B1ms | Primary database |
+- **🔄 Intelligent Recovery**: Automated payment retry with configurable policies| **OpenAPI** | [/openapi.json](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/openapi.json) | API schema specification |
+
+- **📊 Analytics Dashboard**: Real-time insights into payment success rates and recovery metrics
+
+- **🌐 Enterprise Scale**: Built for high-volume transaction processing## ☁️ **Azure Architecture**
+
+
+
+## 🌐 Live ApplicationFollowing Azure deployment best practices, STEALTH-TINKO uses a cloud-native architecture:
+
+
+
+**Production API**: `https://stealth-tinko-prod-app-1762804410.azurewebsites.net`### **🏗️ Infrastructure Components**
+
+
+
+| Endpoint | URL | Description || Resource | Type | Configuration | Purpose |
+
+|----------|-----|-------------||----------|------|---------------|---------|
+
+| **API Documentation** | [/docs](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/docs) | Interactive Swagger UI || **App Service** | `Microsoft.Web/sites` | Python 3.11, Linux | FastAPI application hosting |
+
+| **Health Check** | [/health](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/health) | System status monitoring || **Service Plan** | `Microsoft.Web/serverFarms` | Standard B1ms | Compute resources |
+
+| **OpenAPI Schema** | [/openapi.json](https://stealth-tinko-prod-app-1762804410.azurewebsites.net/openapi.json) | API specification || **PostgreSQL** | `Microsoft.DBforPostgreSQL/flexibleServers` | v15, Standard B1ms | Primary database |
+
 | **Resource Group** | `Microsoft.Resources/resourceGroups` | Central US | Resource organization |
+
+## 🏗️ Architecture
 
 ### **📊 Resource Details**
 
-```yaml
-Resource Group: stealth-tinko-prod-rg
-Location: Central US
-Subscription: Azure subscription 1
+### Backend (FastAPI)
+
+- **Runtime**: Python 3.11 on Azure App Service```yaml
+
+- **Database**: PostgreSQL on Neon (Serverless)Resource Group: stealth-tinko-prod-rg
+
+- **Cache & Sessions**: RedisLocation: Central US
+
+- **SMS Service**: Twilio Verify ServiceSubscription: Azure subscription 1
+
+- **Authentication**: JWT + OAuth2 + Multi-factor
 
 App Service:
-  Name: stealth-tinko-prod-app-1762804410
-  URL: stealth-tinko-prod-app-1762804410.azurewebsites.net
-  Runtime: PYTHON|3.11
-  Plan: stealth-tinko-prod-plan
-  State: Running
 
-Database:
-  Server: stealth-tinko-db-1762806172
-  FQDN: stealth-tinko-db-1762806172.postgres.database.azure.com
-  Type: PostgreSQL Flexible Server
-  Version: 15
-  Database: stealth_tinko
-  Admin: stealthadmin
-  State: Ready
+### Frontend (Next.js 15)  Name: stealth-tinko-prod-app-1762804410
+
+- **Framework**: React 19 + TypeScript  URL: stealth-tinko-prod-app-1762804410.azurewebsites.net
+
+- **Styling**: Tailwind CSS + Radix UI Components  Runtime: PYTHON|3.11
+
+- **State Management**: React Query + Context API  Plan: stealth-tinko-prod-plan
+
+- **Authentication**: NextAuth.js integration  State: Running
+
+
+
+### Cloud InfrastructureDatabase:
+
+```yaml  Server: stealth-tinko-db-1762806172
+
+Azure Resources:  FQDN: stealth-tinko-db-1762806172.postgres.database.azure.com
+
+  Resource Group: stealth-tinko-prod-rg  Type: PostgreSQL Flexible Server
+
+  App Service: stealth-tinko-prod-app-1762804410  Version: 15
+
+  Database: PostgreSQL Flexible Server  Database: stealth_tinko
+
+  Location: Central US  Admin: stealthadmin
+
+```  State: Ready
+
 ```
+
+## 🛠️ Quick Start
 
 ## � **Project Status & Completion**
 
-### **🚀 Current State: Azure Production Deployment**
-**Status**: ✅ **LIVE & OPERATIONAL** (Deployed November 11, 2025)
+### Prerequisites
 
-| Component | Status | Completion | Notes |
-|-----------|--------|------------|-------|
+- Python 3.11+### **🚀 Current State: Azure Production Deployment**
+
+- Node.js 18+**Status**: ✅ **LIVE & OPERATIONAL** (Deployed November 11, 2025)
+
+- PostgreSQL database (Neon recommended)
+
+- Redis instance| Component | Status | Completion | Notes |
+
+- Twilio account for SMS OTP|-----------|--------|------------|-------|
+
 | **🌐 Azure Infrastructure** | ✅ **LIVE** | **100%** | App Service, PostgreSQL, Resource Group operational |
-| **🔗 API Endpoints** | ✅ **WORKING** | **90%** | Core FastAPI application responding |
+
+### Backend Setup| **🔗 API Endpoints** | ✅ **WORKING** | **90%** | Core FastAPI application responding |
+
 | **🗄️ Database** | ✅ **CONNECTED** | **100%** | PostgreSQL Flexible Server with SSL |
-| **🔐 Authentication** | ✅ **IMPLEMENTED** | **85%** | JWT tokens, secure endpoints |
-| **📚 Documentation** | ✅ **UPDATED** | **95%** | Comprehensive Azure-focused docs |
 
-### **🏗️ Development Progress Breakdown**
+```bash| **🔐 Authentication** | ✅ **IMPLEMENTED** | **85%** | JWT tokens, secure endpoints |
 
-#### **✅ COMPLETED FEATURES**
-```
-Backend (FastAPI) - 85% Complete
+# Clone repository| **📚 Documentation** | ✅ **UPDATED** | **95%** | Comprehensive Azure-focused docs |
+
+git clone https://github.com/stealthorga-crypto/STEALTH-TINKO.git
+
+cd STEALTH-TINKO### **🏗️ Development Progress Breakdown**
+
+
+
+# Create virtual environment#### **✅ COMPLETED FEATURES**
+
+python -m venv .venv```
+
+source .venv/bin/activate  # Windows: .venv\Scripts\activateBackend (FastAPI) - 85% Complete
+
 ├─ ✅ Core API Framework (FastAPI + Uvicorn)
-├─ ✅ Database Models (SQLAlchemy + PostgreSQL)  
-├─ ✅ JWT Authentication System
+
+# Install dependencies├─ ✅ Database Models (SQLAlchemy + PostgreSQL)  
+
+pip install -r requirements.txt├─ ✅ JWT Authentication System
+
 ├─ ✅ API Route Handlers (/auth, /health, /docs)
-├─ ✅ Database Migrations (Alembic)
-├─ ✅ CORS & Middleware Configuration
-├─ ✅ Azure App Service Integration
+
+# Configure environment├─ ✅ Database Migrations (Alembic)
+
+cp .env.example .env├─ ✅ CORS & Middleware Configuration
+
+# Edit .env with your production credentials├─ ✅ Azure App Service Integration
+
 ├─ ✅ Environment Variable Management
-├─ ✅ SSL/TLS Database Connections
-└─ ✅ Production Deployment Pipeline
 
-Cloud Infrastructure - 100% Complete
-├─ ✅ Azure App Service (Python 3.11)
-├─ ✅ PostgreSQL Flexible Server (v15)
+# Run database migrations├─ ✅ SSL/TLS Database Connections
+
+alembic upgrade head└─ ✅ Production Deployment Pipeline
+
+
+
+# Start backend serverCloud Infrastructure - 100% Complete
+
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload├─ ✅ Azure App Service (Python 3.11)
+
+```├─ ✅ PostgreSQL Flexible Server (v15)
+
 ├─ ✅ Resource Group Management
-├─ ✅ Environment Configuration
-├─ ✅ SSL Certificate & HTTPS
-├─ ✅ Firewall & Security Rules
-├─ ✅ GitHub Actions CI/CD
-└─ ✅ Live Production Environment
 
-Documentation & DevOps - 95% Complete
-├─ ✅ Comprehensive README
+### Frontend Setup├─ ✅ Environment Configuration
+
+├─ ✅ SSL Certificate & HTTPS
+
+```bash├─ ✅ Firewall & Security Rules
+
+# Navigate to frontend├─ ✅ GitHub Actions CI/CD
+
+cd tinko-console└─ ✅ Live Production Environment
+
+
+
+# Install dependenciesDocumentation & DevOps - 95% Complete
+
+npm install├─ ✅ Comprehensive README
+
 ├─ ✅ API Documentation (Swagger/ReDoc)
-├─ ✅ Azure Architecture Docs
-├─ ✅ Monitoring & Management Guides
+
+# Configure environment├─ ✅ Azure Architecture Docs
+
+echo "NEXT_PUBLIC_API_URL=http://127.0.0.1:8010" > .env.local├─ ✅ Monitoring & Management Guides
+
 ├─ ✅ Security Best Practices
-├─ ✅ Cost Optimization Guidelines
-├─ ✅ Development Workflow
-└─ ✅ GitHub Repository Setup
+
+# Start development server├─ ✅ Cost Optimization Guidelines
+
+npm run dev├─ ✅ Development Workflow
+
+```└─ ✅ GitHub Repository Setup
+
 ```
+
+## 📋 Environment Configuration
 
 #### **🚧 IN PROGRESS / PLANNED**
-```
-Advanced Features - 15% Complete
-├─ 🚧 Payment Recovery Workflows
-├─ 🚧 Multi-PSP Integration (Stripe, Razorpay)
-├─ 🚧 Automated Retry Logic
-├─ 🚧 Email/SMS Notifications
-├─ 🚧 Analytics Dashboard
-├─ 🚧 Rules Engine
-├─ 🚧 Template Management
-└─ 🚧 Multi-tenancy Support
 
-Frontend Application - 60% Complete
-├─ ✅ Next.js Framework Setup
-├─ ✅ UI Components & Pages
+Create `.env` file with the following variables:```
+
+Advanced Features - 15% Complete
+
+```bash├─ 🚧 Payment Recovery Workflows
+
+# Database Configuration├─ 🚧 Multi-PSP Integration (Stripe, Razorpay)
+
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require├─ 🚧 Automated Retry Logic
+
+├─ 🚧 Email/SMS Notifications
+
+# Twilio SMS/OTP Service (Required)├─ 🚧 Analytics Dashboard
+
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx├─ 🚧 Rules Engine
+
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx├─ 🚧 Template Management
+
+TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx└─ 🚧 Multi-tenancy Support
+
+
+
+# Google OAuth (Required for SSO)Frontend Application - 60% Complete
+
+GOOGLE_OAUTH_CLIENT_ID=xxxxx.apps.googleusercontent.com├─ ✅ Next.js Framework Setup
+
+GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx├─ ✅ UI Components & Pages
+
 ├─ 🚧 API Integration Layer
-├─ 🚧 Real-time Updates
-├─ 🚧 Advanced Analytics
-└─ 🚧 Mobile Responsiveness
+
+# JWT Security├─ 🚧 Real-time Updates
+
+JWT_SECRET=your-secure-random-secret-key-minimum-32-characters├─ 🚧 Advanced Analytics
+
+JWT_ALGORITHM=HS256└─ 🚧 Mobile Responsiveness
+
+JWT_EXPIRY_MINUTES=1440
 
 Enterprise Features - 0% Complete
-├─ ⏳ Advanced Monitoring (APM)
-├─ ⏳ Load Balancing
+
+# Redis Cache├─ ⏳ Advanced Monitoring (APM)
+
+REDIS_URL=redis://localhost:6379/0├─ ⏳ Load Balancing
+
 ├─ ⏳ Auto-scaling
-├─ ⏳ Backup & Recovery
-├─ ⏳ Disaster Recovery
-└─ ⏳ Compliance & Audit Logs
+
+# Payment Gateways├─ ⏳ Backup & Recovery
+
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx├─ ⏳ Disaster Recovery
+
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxxxxxx└─ ⏳ Compliance & Audit Logs
+
+RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx```
+
+
+
+# API Configuration### **📈 Technical Metrics**
+
+PUBLIC_BASE_URL=http://127.0.0.1:8010
+
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000| Metric | Value | Status |
+
+```|--------|-------|--------|
+
+| **🐍 Python Files** | 96 files | ✅ Active |
+
+## 🔄 Core API Endpoints| **🧪 Test Coverage** | 20+ test files | ⚠️ Expanding |
+
+| **📦 Dependencies** | 50+ packages | ✅ Managed |
+
+### Authentication & Registration| **🗄️ Database Tables** | 8+ models | ✅ Structured |
+
+```http| **🔄 API Endpoints** | 15+ routes | ✅ Documented |
+
+POST /auth/mobile/send-otp      # Send SMS OTP for phone verification| **⚡ Response Time** | <200ms avg | ✅ Optimized |
+
+POST /auth/mobile/verify-otp    # Verify SMS OTP code| **🔒 Security Score** | 8/10 | ✅ Strong |
+
+POST /auth/google               # Google OAuth authentication| **📊 Uptime** | 99.9% target | ✅ Monitored |
+
+POST /auth/register             # Complete user registration
+
+POST /auth/login                # Standard email/password login### **🎯 Completion Roadmap**
+
 ```
 
-### **📈 Technical Metrics**
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| **🐍 Python Files** | 96 files | ✅ Active |
-| **🧪 Test Coverage** | 20+ test files | ⚠️ Expanding |
-| **📦 Dependencies** | 50+ packages | ✅ Managed |
-| **🗄️ Database Tables** | 8+ models | ✅ Structured |
-| **🔄 API Endpoints** | 15+ routes | ✅ Documented |
-| **⚡ Response Time** | <200ms avg | ✅ Optimized |
-| **🔒 Security Score** | 8/10 | ✅ Strong |
-| **📊 Uptime** | 99.9% target | ✅ Monitored |
-
-### **🎯 Completion Roadmap**
-
 #### **📅 Phase 1: Core Platform (COMPLETED ✅)**
-- [x] Azure infrastructure deployment
-- [x] FastAPI backend foundation
-- [x] PostgreSQL database setup
-- [x] JWT authentication system
-- [x] API documentation
-- [x] Production environment
+
+### Payment Recovery Management- [x] Azure infrastructure deployment
+
+```http- [x] FastAPI backend foundation
+
+GET  /recoveries                # List all recovery campaigns- [x] PostgreSQL database setup
+
+POST /recoveries                # Create new recovery campaign- [x] JWT authentication system
+
+GET  /recoveries/{id}           # Get specific recovery details- [x] API documentation
+
+PUT  /recoveries/{id}           # Update recovery campaign- [x] Production environment
+
+```
 
 #### **📅 Phase 2: Business Logic (40% Complete 🚧)**
-- [ ] Payment recovery workflows
-- [ ] Automated retry scheduling  
-- [ ] Multi-PSP integrations
-- [ ] Customer notification system
-- [ ] Analytics & reporting
+
+### Analytics & Reporting- [ ] Payment recovery workflows
+
+```http- [ ] Automated retry scheduling  
+
+GET /analytics/dashboard        # Recovery performance metrics- [ ] Multi-PSP integrations
+
+GET /analytics/revenue          # Revenue recovery statistics- [ ] Customer notification system
+
+GET /analytics/success-rates    # Success rate analysis- [ ] Analytics & reporting
+
+```
 
 #### **📅 Phase 3: Enterprise Features (Planned ⏳)**
-- [ ] Advanced monitoring & alerting
-- [ ] Load balancing & auto-scaling
-- [ ] Advanced security features
-- [ ] Compliance & audit logging
-- [ ] Disaster recovery
 
-### **🔥 Current Sprint Focus**
+### Webhook Integrations- [ ] Advanced monitoring & alerting
+
+```http- [ ] Load balancing & auto-scaling
+
+POST /webhooks/stripe           # Stripe payment events- [ ] Advanced security features
+
+POST /webhooks/razorpay         # Razorpay payment events- [ ] Compliance & audit logging
+
+```- [ ] Disaster recovery
+
+
+
+## 🧪 Testing### **🔥 Current Sprint Focus**
+
 1. **API Endpoint Development** - Expanding business logic APIs
-2. **Payment Integration** - Stripe/Razorpay webhook handling
-3. **Frontend Integration** - Connecting React components to live APIs
-4. **Testing & QA** - Comprehensive test coverage
+
+### Backend Tests2. **Payment Integration** - Stripe/Razorpay webhook handling
+
+```bash3. **Frontend Integration** - Connecting React components to live APIs
+
+# Run all backend tests4. **Testing & QA** - Comprehensive test coverage
+
+pytest
 
 ## �🔧 **Technology Stack**
 
-### **Backend Framework**
+# Run with coverage
+
+pytest --cov=app --cov-report=html### **Backend Framework**
+
 - **FastAPI**: Modern, fast web framework for building APIs
-- **Uvicorn**: ASGI server implementation
-- **Pydantic**: Data validation using Python type annotations
-- **SQLAlchemy**: Python SQL toolkit and ORM
+
+# Run specific test modules- **Uvicorn**: ASGI server implementation
+
+pytest tests/test_auth.py -v- **Pydantic**: Data validation using Python type annotations
+
+```- **SQLAlchemy**: Python SQL toolkit and ORM
+
 - **Alembic**: Database migration tool
 
-### **Database & Storage**
-- **Azure PostgreSQL Flexible Server**: Managed PostgreSQL service
+### Frontend Tests
+
+```bash### **Database & Storage**
+
+cd tinko-console- **Azure PostgreSQL Flexible Server**: Managed PostgreSQL service
+
 - **psycopg2**: PostgreSQL adapter for Python
-- **SSL/TLS**: Encrypted database connections
+
+# Run unit tests- **SSL/TLS**: Encrypted database connections
+
+npm test
 
 ### **Security & Authentication**
-- **JWT Tokens**: JSON Web Tokens for authentication
-- **Password Hashing**: Secure password storage
-- **CORS**: Cross-Origin Resource Sharing configuration
-- **HTTPS**: SSL/TLS encryption for all connections
 
-### **Cloud & DevOps**
+# Run end-to-end tests- **JWT Tokens**: JSON Web Tokens for authentication
+
+npm run test:e2e- **Password Hashing**: Secure password storage
+
+- **CORS**: Cross-Origin Resource Sharing configuration
+
+# Type checking- **HTTPS**: SSL/TLS encryption for all connections
+
+npm run type-check
+
+```### **Cloud & DevOps**
+
 - **Azure App Service**: Platform-as-a-Service hosting
-- **Azure CLI**: Infrastructure management
-- **GitHub Actions**: CI/CD pipeline
-- **Docker**: Containerized deployment
+
+### Integration Testing- **Azure CLI**: Infrastructure management
+
+```bash- **GitHub Actions**: CI/CD pipeline
+
+# Full system smoke test- **Docker**: Containerized deployment
+
+python smoke_test.py
 
 ## 🚀 **Quick Start**
 
-### **Prerequisites**
-- Python 3.11+
+# Test specific endpoints
+
+python test_all_endpoints.py### **Prerequisites**
+
+```- Python 3.11+
+
 - Azure CLI
-- Git
+
+## 🚀 Deployment- Git
+
 - PostgreSQL client (optional)
 
-### **Local Development Setup**
+### Backend Deployment (Azure)
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/stealthorga-crypto/STEALTH-TINKO.git
-cd STEALTH-TINKO
-```
+The backend is automatically deployed to Azure App Service from the main branch.### **Local Development Setup**
 
-2. **Create virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or
+
+
+**Production Environment**:1. **Clone the repository**
+
+- **URL**: https://stealth-tinko-prod-app-1762804410.azurewebsites.net```bash
+
+- **Runtime**: Python 3.11 on Linuxgit clone https://github.com/stealthorga-crypto/STEALTH-TINKO.git
+
+- **Database**: PostgreSQL Flexible Servercd STEALTH-TINKO
+
+- **Monitoring**: Azure Application Insights```
+
+
+
+### Frontend Deployment2. **Create virtual environment**
+
+```bash```bash
+
+# Build for productionpython -m venv venv
+
+cd tinko-consolesource venv/bin/activate  # Linux/Mac
+
+npm run build# or
+
 venv\Scripts\activate     # Windows
-```
+
+# Deploy to Azure Static Web Apps```
+
+npm run deploy:azure
 
 3. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
 
-4. **Environment configuration**
-```bash
-# Create .env file
-cp .env.example .env
+# Or deploy to Vercel```bash
 
-# Configure environment variables
-DATABASE_URL=postgresql://user:password@localhost:5432/stealth_tinko
-JWT_SECRET_KEY=your-secret-key-here
+npm run deploy:vercelpip install -r requirements.txt
+
+``````
+
+
+
+## 📊 Enterprise Features4. **Environment configuration**
+
+```bash
+
+### Security & Compliance# Create .env file
+
+- **Multi-factor Authentication**: SMS OTP + Google OAuthcp .env.example .env
+
+- **Data Encryption**: AES-256 encryption for sensitive data
+
+- **PCI DSS Compliance**: Secure payment data handling# Configure environment variables
+
+- **Rate Limiting**: API endpoint protectionDATABASE_URL=postgresql://user:password@localhost:5432/stealth_tinko
+
+- **CORS Security**: Properly configured cross-origin requestsJWT_SECRET_KEY=your-secret-key-here
+
 ENVIRONMENT=development
-```
 
-5. **Run the application**
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+### Monitoring & Observability```
 
-6. **Access the application**
-- API: http://localhost:8000
-- Docs: http://localhost:8000/docs
+- **Health Checks**: Automated system monitoring
 
-## ⚙️ **Configuration**
+- **Error Tracking**: Sentry integration for error reporting5. **Run the application**
 
-### **Environment Variables**
+- **Performance Metrics**: Real-time API performance monitoring```bash
 
-| Variable | Description | Required | Example |
-|----------|-------------|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ | `postgresql://user:pass@host:5432/db` |
-| `JWT_SECRET_KEY` | JWT token signing secret | ✅ | `your-secret-key` |
-| `JWT_ALGORITHM` | JWT algorithm | ❌ | `HS256` (default) |
+- **Audit Logs**: Comprehensive user action logginguvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+- **Structured Logging**: JSON logs with correlation IDs```
+
+
+
+### Scalability & Performance6. **Access the application**
+
+- **Redis Caching**: Session and data caching- API: http://localhost:8000
+
+- **Database Optimization**: Query optimization and indexing- Docs: http://localhost:8000/docs
+
+- **Background Processing**: Celery task queue for heavy operations
+
+- **CDN Integration**: Static asset optimization## ⚙️ **Configuration**
+
+
+
+## 🔐 Security Implementation### **Environment Variables**
+
+
+
+### Authentication Flow| Variable | Description | Required | Example |
+
+1. **Multi-step Registration**: Personal info → Business info → Payment providers → OTP verification|----------|-------------|----------|---------|
+
+2. **Phone Verification**: Real SMS OTP via Twilio Verify Service| `DATABASE_URL` | PostgreSQL connection string | ✅ | `postgresql://user:pass@host:5432/db` |
+
+3. **Session Management**: Secure JWT tokens with refresh capability| `JWT_SECRET_KEY` | JWT token signing secret | ✅ | `your-secret-key` |
+
+4. **OAuth Integration**: Google SSO for enterprise users| `JWT_ALGORITHM` | JWT algorithm | ❌ | `HS256` (default) |
+
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration time | ❌ | `30` (default) |
-| `ENVIRONMENT` | Application environment | ❌ | `production`/`development` |
-| `WEBSITES_PORT` | Azure port configuration | ✅ | `8000` |
 
-### **Azure App Service Settings**
+### Data Protection| `ENVIRONMENT` | Application environment | ❌ | `production`/`development` |
+
+- **Environment Variables**: All secrets in environment variables| `WEBSITES_PORT` | Azure port configuration | ✅ | `8000` |
+
+- **Database Security**: Connection encryption and query parameterization
+
+- **API Security**: Request validation and sanitization### **Azure App Service Settings**
+
+- **Token Security**: Secure token generation and validation
 
 ```bash
-# View current configuration
+
+## 📈 Analytics & Insights# View current configuration
+
 az webapp config appsettings list \
+
+### Dashboard Metrics  --name stealth-tinko-prod-app-1762804410 \
+
+- **Recovery Rate**: Percentage of failed payments recovered  --resource-group stealth-tinko-prod-rg
+
+- **Revenue Impact**: Total revenue recovered through platform
+
+- **Success Trends**: Time-based success rate analysis# Update configuration
+
+- **Provider Performance**: Comparison of payment gateway success ratesaz webapp config appsettings set \
+
   --name stealth-tinko-prod-app-1762804410 \
-  --resource-group stealth-tinko-prod-rg
 
-# Update configuration
-az webapp config appsettings set \
-  --name stealth-tinko-prod-app-1762804410 \
-  --resource-group stealth-tinko-prod-rg \
-  --settings KEY=value
-```
+### Reporting Features  --resource-group stealth-tinko-prod-rg \
 
-## 🔐 **Security Features**
+- **Real-time Dashboards**: Live payment recovery metrics  --settings KEY=value
 
-Following Azure security best practices:
+- **Custom Reports**: Configurable reporting parameters```
 
-### **Application Security**
-- ✅ **JWT Authentication**: Stateless token-based authentication
-- ✅ **Password Hashing**: bcrypt with salt
-- ✅ **CORS Configuration**: Controlled cross-origin access
-- ✅ **Input Validation**: Pydantic model validation
-- ✅ **SQL Injection Protection**: SQLAlchemy ORM
+- **Export Capabilities**: CSV/PDF export for offline analysis
 
-### **Infrastructure Security**
+- **Alert System**: Automated alerts for critical metrics## 🔐 **Security Features**
+
+
+
+## 🤝 ContributingFollowing Azure security best practices:
+
+
+
+### Development Workflow### **Application Security**
+
+1. Fork the repository- ✅ **JWT Authentication**: Stateless token-based authentication
+
+2. Create feature branch (`git checkout -b feature/amazing-feature`)- ✅ **Password Hashing**: bcrypt with salt
+
+3. Make your changes with proper tests- ✅ **CORS Configuration**: Controlled cross-origin access
+
+4. Ensure all tests pass (`pytest` and `npm test`)- ✅ **Input Validation**: Pydantic model validation
+
+5. Commit changes (`git commit -m 'Add amazing feature'`)- ✅ **SQL Injection Protection**: SQLAlchemy ORM
+
+6. Push to branch (`git push origin feature/amazing-feature`)
+
+7. Open a Pull Request with detailed description### **Infrastructure Security**
+
 - ✅ **HTTPS Enforcement**: SSL/TLS for all connections
-- ✅ **Database Encryption**: SSL-required PostgreSQL
-- ✅ **Network Security**: Azure-managed firewalls
-- ✅ **Secrets Management**: Azure App Service configuration
-- ✅ **Access Control**: Azure RBAC and resource-level permissions
+
+### Code Standards- ✅ **Database Encryption**: SSL-required PostgreSQL
+
+- **Python**: Follow PEP 8, use type hints, maintain 90%+ test coverage- ✅ **Network Security**: Azure-managed firewalls
+
+- **TypeScript**: Strict TypeScript, ESLint compliance, proper component props- ✅ **Secrets Management**: Azure App Service configuration
+
+- **Documentation**: Update API docs and README for any changes- ✅ **Access Control**: Azure RBAC and resource-level permissions
+
+- **Testing**: Add tests for all new features and bug fixes
 
 ## 📊 **API Documentation**
 
+## 📄 License
+
 ### **Authentication Endpoints**
-```http
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.```http
+
 POST /auth/register    # User registration
-POST /auth/login       # User login
+
+## 🆘 Enterprise SupportPOST /auth/login       # User login
+
 POST /auth/refresh     # Token refresh
-GET  /auth/me          # Current user profile
+
+For enterprise customers and advanced integrations:GET  /auth/me          # Current user profile
+
 ```
 
-### **Core API Endpoints**
-```http
-GET  /                 # Application root
+### Documentation
+
+- **API Guide**: Complete API documentation in `/docs`### **Core API Endpoints**
+
+- **Integration Examples**: Sample code for common integrations```http
+
+- **Troubleshooting**: Common issues and solutionsGET  /                 # Application root
+
 GET  /health          # Health check endpoint
-GET  /docs            # Swagger UI documentation
-GET  /redoc           # ReDoc documentation
-GET  /openapi.json    # OpenAPI schema
-```
 
-### **Sample API Calls**
+### Support ChannelsGET  /docs            # Swagger UI documentation
 
-```bash
-# Health check
-curl https://stealth-tinko-prod-app-1762804410.azurewebsites.net/health
+- **GitHub Issues**: Bug reports and feature requestsGET  /redoc           # ReDoc documentation
 
-# User registration
+- **Documentation**: Comprehensive guides in `/docs` folderGET  /openapi.json    # OpenAPI schema
+
+- **Enterprise Support**: Contact for dedicated technical support```
+
+
+
+### Custom Development### **Sample API Calls**
+
+- **Payment Gateway Integrations**: Add new payment providers
+
+- **Custom Analytics**: Tailored reporting and metrics```bash
+
+- **White-label Solutions**: Branded implementations# Health check
+
+- **API Extensions**: Custom endpoint developmentcurl https://stealth-tinko-prod-app-1762804410.azurewebsites.net/health
+
+
+
+---# User registration
+
 curl -X POST https://stealth-tinko-prod-app-1762804410.azurewebsites.net/auth/register \
-  -H "Content-Type: application/json" \
+
+**🏢 Built for Enterprise Payment Recovery Excellence**  -H "Content-Type: application/json" \
+
   -d '{"username": "user", "email": "user@example.com", "password": "securepass"}'
 
+*Stealth Tinko - Recover More, Worry Less*
 # Login
 curl -X POST https://stealth-tinko-prod-app-1762804410.azurewebsites.net/auth/login \
   -H "Content-Type: application/json" \

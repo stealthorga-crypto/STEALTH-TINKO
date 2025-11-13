@@ -139,7 +139,6 @@ export default function SignupPage() {
     try {
       // In development mode, simulate OTP sending without actual backend call
       if (DEV_MODE) {
-        console.log('DEV MODE: Simulating OTP send to:', `${personalInfo.countryCode}${personalInfo.phoneNumber}`);
         await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
         setOtpSent(true);
         setCurrentStep('otp');
@@ -162,7 +161,6 @@ export default function SignupPage() {
       if (response.ok) {
         setOtpSent(true);
         setCurrentStep('otp');
-        console.log('OTP sent successfully:', data);
       } else {
         // Handle specific Twilio configuration errors
         if (data.message?.includes('Twilio') || data.message?.includes('SMS') || data.message?.includes('credentials')) {
@@ -191,11 +189,9 @@ export default function SignupPage() {
     try {
       // In development mode, accept "123456" as valid OTP
       if (DEV_MODE) {
-        console.log('DEV MODE: Verifying OTP:', otpCode);
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
         
         if (otpCode === '123456') {
-          console.log('DEV MODE: OTP verified successfully');
           await createUserAccount();
           return;
         } else {
@@ -218,7 +214,6 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('OTP verified successfully:', data);
         await createUserAccount();
       } else {
         // Handle specific Twilio configuration errors
@@ -247,8 +242,6 @@ export default function SignupPage() {
         phoneVerified: true
       };
 
-      console.log('Creating user account with data:', userData);
-      
       // For now, just show success - you'll need to implement the actual registration endpoint
       setCurrentStep('complete');
     } catch (error) {

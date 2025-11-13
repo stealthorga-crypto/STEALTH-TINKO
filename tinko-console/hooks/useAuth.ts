@@ -23,7 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   
   // Authentication methods
-  signup: (userData: any) => Promise<AuthResult>;
+  signup: (userData: Record<string, unknown>) => Promise<AuthResult>;
   loginWithEmail: (email: string, password: string) => Promise<AuthResult>;
   googleLogin: (credential: string) => Promise<AuthResult>;
   sendOTP: (mobileNumber: string) => Promise<AuthResult>;
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const makeAuthRequest = async (endpoint: string, body: any): Promise<any> => {
+  const makeAuthRequest = async (endpoint: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return data;
   };
 
-  const handleAuthSuccess = (authData: any): AuthResult => {
+  const handleAuthSuccess = (authData: Record<string, unknown>): AuthResult => {
     const { access_token, user: userData } = authData;
     
     if (access_token) {

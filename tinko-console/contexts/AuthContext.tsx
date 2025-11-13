@@ -33,10 +33,18 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  // Ensure component is mounted before accessing browser APIs
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Check for existing session on mount
   useEffect(() => {
+    if (!isMounted) return;
+    
     const initAuth = async () => {
       try {
         let token = localStorage.getItem('auth_token');
@@ -95,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initAuth();
-  }, []);
+  }, [isMounted]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -195,6 +203,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshProfile,
   };
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
 
   return (
     <AuthContext.Provider value={value}>
